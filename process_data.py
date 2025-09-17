@@ -1,18 +1,20 @@
 import pdfplumber
 import re
 import os
+from typing import Dict, List, Optional, Union
 
-    
 def parse_copa3_form(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         page = pdf.pages[0]
         text = page.extract_text()
-        return text
 
-def extract_address(text):
-    # Clean the text first to remove OCR/PDF artifacts
-    cleaned_text = re.sub(r'[_*]+', '', text)  # Remove underscores and asterisks
-    cleaned_text = re.sub(r'\s+', ' ', cleaned_text)  # Normalize whitespace
+        # Clean the text first to remove OCR/PDF artifacts
+        cleaned_text = re.sub(r'[_*]+', '', text)  # Remove underscores and asterisks
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text)  # Normalize whitespace
+
+        return cleaned_text
+
+def extract_address(cleaned_text):
     
     # Pattern 1: Standard format with full state (CA) - from process_data.py
     standard_pattern = r'(.*?)Property Address:\s*([^,]+,\s*[A-Z]{2}\s*\d{5})'
@@ -31,7 +33,7 @@ def extract_address(text):
                 'property_type': 'single_building'
             }
     
-    # Pattern 2: Flexible format (missing CA or other variations) - from process_data_v2.py  
+    # Pattern 2: Flexible format (missing CA or other variations)
     flexible_pattern = r'(.*?)Property Address:\s*([^\n]+)'
     flexible_match = re.search(flexible_pattern, cleaned_text, re.DOTALL)
     
@@ -70,9 +72,54 @@ def extract_address(text):
     
     return None
 
+def extract_basic_property_info(cleaned_text: str) -> Dict[str, Union[str, int, bool]]:
+    """Extract basic property information from COPA form text"""
+        
+    info = {}
+    
+    # Total number of units
+    total_units_match = re.search(r'Total\s*#\s*of\s*units\s*(\d+)', cleaned_text, re.IGNORECASE)
+    if total_units_match:
+        info['total_units'] = int(total_units_match.group(1))
+    
+    # Number of residential units
+    residential_match = re.search(r'#\s*of\s*residential\s*units\s*(\d+)', cleaned_text, re.IGNORECASE)
+    if residential_match:
+        info['residential_units'] = int(residential_match.group(1))
+    
+    # Currently vacant residential
+    vacant_residential_match = re.search(r'#\s*currently\s*vacant\s*(\d+)', cleaned_text, re.IGNORECASE)
+    if vacant_residential_match:
+        info['vacant_residential'] = int(vacant_residential_match.group(1))
+    
+    # Commercial units
+    commercial_match = re.search(r'#\s*of\s*commercial\s*\(office/retail\)\s*units\s*(\d+)', cleaned_text, re.IGNORECASE)
+    if commercial_match:
+        info['commercial_units'] = int(commercial_match.group(1))
+    
+    # Currently vacant commercial
+    vacant_commercial_pattern = r'#\s*currently\s*vacant.*?(\d+)(?=\s|$)'
+    all_vacant_matches = re.findall(vacant_commercial_pattern, cleaned_text, re.IGNORECASE)
+    if len(all_vacant_matches) >= 2:
+        info['vacant_commercial'] = int(all_vacant_matches[1])
+    
+    # Vacant lot checkbox
+    vacant_lot_match = re.search(r'Check\s*if\s*a\s*vacant\s*lot\s{0,10}([☑✓X])', cleaned_text, re.IGNORECASE)
+    info['is_vacant_lot'] = bool(vacant_lot_match)
+    
+    # Soft story work
+    soft_story_match = re.search(r'Soft\s*Story\s*work\s*required.*?(?:(?P<yes>[☑✓X])\s*Yes|(?P<no>[☑✓X])\s*No)', cleaned_text, re.IGNORECASE)
+
+    if soft_story_match:
+        if soft_story_match.group('yes'):
+            info['soft_story_required'] = True
+        elif soft_story_match.group('no'):
+            info['soft_story_required'] = False
+            
+    print (info)
 
 # Data folder is local, change to your own path
-folder_path = "data/top_page"
+folder_path = "data"
 
 try:
     filenames = os.listdir(folder_path)
@@ -82,8 +129,10 @@ try:
             
             try:
                 parsed_text = parse_copa3_form(current_path)
-                result = extract_address(parsed_text)
-                print("current path: ", current_path, "\n extract_address: ", result, "\n")
+                print("filename: ", filename, "\n")
+                extract_basic_property_info(parsed_text)
+                print("\n")
+                print("parsed_text: ", parsed_text)
             except Exception as e:
                 print(f"Error processing {current_path}: {e}")
                 print("Skipping to next file...\n")
