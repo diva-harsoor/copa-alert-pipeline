@@ -115,8 +115,20 @@ def extract_basic_property_info(cleaned_text: str) -> Dict[str, Union[str, int, 
             info['soft_story_required'] = True
         elif soft_story_match.group('no'):
             info['soft_story_required'] = False
-            
+
     print (info)
+
+def extract_seller_info(text: str) -> Dict[str, str]:
+    """Extract seller information"""
+    
+    info = {}
+    
+    # Seller name - appears right after "Seller:"
+    seller_match = re.search(r'Seller:\s*(.*?)(?=(Asking\s*price)|Askingprice)', text, re.DOTALL)
+    if seller_match:
+        info['seller_name'] = seller_match.group(1).strip()
+        
+    return info
 
 # Data folder is local, change to your own path
 folder_path = "data"
@@ -128,11 +140,14 @@ try:
             current_path = os.path.join(folder_path, filename)
             
             try:
-                parsed_text = parse_copa3_form(current_path)
+                cleaned_text = parse_copa3_form(current_path)
                 print("filename: ", filename, "\n")
-                extract_basic_property_info(parsed_text)
+                print(extract_seller_info(cleaned_text))
                 print("\n")
-                print("parsed_text: ", parsed_text)
+                '''
+                if (filename=="test6.pdf" or filename=="test12.pdf"):
+                    print("parsed_text: ", cleaned_text)
+                '''
             except Exception as e:
                 print(f"Error processing {current_path}: {e}")
                 print("Skipping to next file...\n")
