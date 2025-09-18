@@ -2,31 +2,82 @@ import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { supabase } from './supabase'
+import Auth from './components/Auth'
 
 function App() {
-  const [count, setCount] = useState(0)
   const [propertyData, setPropertyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
-    fetch('/property-data.json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to load property data')
-        }
-        return response.json();
-      })
-      .then(data => {
-        setPropertyData(data.listings)
-        setLoading(false)
-      })
-      .catch(error => {
-        console.error('Error loading data:', error)
-        setError(error.message)
-        setLoading(false)
-      })
+    // Get initial session
+    supabase.auth.getSession().then(({data: { session } }) => {
+      setSession(session)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+
   }, [])
+
+  useEffect(() => {
+    if (session) {
+      fetchData()
+    } else {
+      setPropertyData([])
+      setLoading(false)
+    }
+  }, [session])
+
+  const fetchData = async () => {
+    setLoading(true)
+    console.log('Fetching data from Supabase...')
+    
+    const { data, error } = await supabase
+      .from('copa_listings')
+      .select('*')
+    
+    console.log('Supabase response:', { data, error })
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      setError(error.message)
+    } else {
+      console.log('Data received:', data?.length, 'properties')
+      setPropertyData(data || [])
+    }
+    setLoading(false)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
+
+  if (!session) {
+    return <Auth />
+  }
+        
+  /*
+  // Test the connection to the Supabase Realtime channel
+  useEffect(() => {
+    const testConnection = async () => {
+      const { data, error } = await supabase.from('_realtime').select('*').limit(1)
+      if (error) {
+        console.error('Supabase connection text - error fetching data:', error.message)
+      } else {
+        console.log('Supabase connected successfully')
+      }
+    }
+    testConnection()
+  }, [])
+  */
 
   if (loading) return <div>Loading property data...</div>
   if (error) return <div>Error loading property data: {error}</div>
@@ -34,13 +85,21 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            COPA Property Listings
-          </h1>
-          <p className="text-lg text-gray-600">
-            Found {propertyData.length} properties
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Housing Property Listings
+            </h1>
+            <p className="text-lg text-gray-600">
+              Found {propertyData.length} properties
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            Logout
+          </button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
