@@ -218,16 +218,7 @@ def extract_financial_info(text: str) -> Dict[str, str]:
     other_expenses_match = re.search(r'(?:Other\s*expenses|Otherexpenses)\s*\$?([\d,]+\.?\d*)(?=\s|$)', text)
     if other_expenses_match:
         info['other_expenses'] = other_expenses_match.group(1).replace(',', '')
-    
-    # GRM and CAP rate - these are usually on their own
-    grm_match = re.search(r'GRM\s*(\d+\.?\d*)(?=\s|$)', text)
-    if grm_match:
-        info['grm'] = grm_match.group(1)
-    
-    cap_rate_match = re.search(r'CAP\s*(\d+\.?\d*)(?=\s|$)', text)
-    if cap_rate_match:
-        info['cap_rate'] = cap_rate_match.group(1)
-    
+        
     return info
 
 # Data folder is local, change to your own path
