@@ -1,5 +1,29 @@
-# Ignore macOS folder metadata
+# Ignore macOS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashesi
 
-# Ignore the data directory and its contents
+# Ignore all property data
 data/
+*.pdf
+*/.json
+property-data.json
+vite-project/public/property-data.json
+vite-project/public/*.json
+
+# Vite/React
+vite-project/dist/
+vite-project/dist-ssr/
+vite-project/*.local
+vite-project/node_modules/
+vite-project/.env
+vite-project/.env.local
+vite-project/.env.*.local
+vite-project/npm-debug.log*
+vite-project/yarn-debug.log*
+vite-project/yarn-error.log*
+
+# Node
+node_modules/
