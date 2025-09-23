@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import { supabase } from './supabase'
 import Auth from './components/Auth'
+// import './migrate-data.js'
 
 function App() {
   const [propertyData, setPropertyData] = useState([]);
