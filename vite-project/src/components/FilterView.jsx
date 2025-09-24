@@ -53,7 +53,7 @@ export default function FilterView() {
                 min="1"
                 max="5"
                 value="3"
-                className="w-full h-2 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-gray-200 from-red-200 via-yellow-200 to-green-200 rounded-lg appearance-none cursor-pointer"
               />
             </div>
             <span className="text-sm font-medium text-blue-600 w-8">3</span>

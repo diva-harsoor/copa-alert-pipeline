@@ -1,49 +1,105 @@
 
-export default function PropertyCard( { listing } ) {
+export default function PropertyCard({ listing }) {
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
-    return (
-              <div key={listing.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
-                <div className="p-6">
-                  <div className="mb-4">
-                      <p>
-                        <span className="font-medium text-gray-900">Date:</span>{' '}
-                        {listing.date?.toLocaleString()}
-                      </p>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {listing.address?.full_address || 'Address not available'}
-                    </h3>
-                    {listing.financial_data?.asking_price && (
-                      <p className="text-2xl font-bold text-green-600">
-                        ${listing.financial_data.asking_price.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p>
-                      <span className="font-medium text-gray-900">Seller:</span>{' '}
-                      {listing.seller_info?.seller_name || 'N/A'}
-                    </p>
-                    {listing.financial_data?.total_monthly_income && (
-                      <p>
-                        <span className="font-medium text-gray-900">Monthly Income:</span>{' '}
-                        ${listing.financial_data.total_monthly_income.toLocaleString()}
-                      </p>
-                    )}
-                    {listing.financial_data?.net_operating_income && (
-                      <p>
-                        <span className="font-medium text-gray-900">NOI:</span>{' '}
-                        ${listing.financial_data.net_operating_income.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500">
-                      Source: {listing.source.split('/').pop()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-      )
+  // Helper function to format percentage
+  const formatPercent = (rate) => {
+    if (!rate) return 'N/A';
+    return `${rate}%`;
+  };
+
+  // Helper function to get days remaining color
+  const getDaysRemainingColor = (days) => {
+    if (days <= 2) return 'text-red-600 bg-red-50';
+    if (days <= 4) return 'text-yellow-600 bg-yellow-50';
+    return 'text-green-600 bg-green-50';
+  };
+
+  return (
+    <div className="py-4 border-b border-gray-200 text-left">
+      {/* Header */}
+      <div className="mb-3">
+        <h3 className="font-semibold text-lg text-gray-900">{listing.address.street_address}</h3>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-gray-600 text-sm">{listing.neighborhood || 'Neighborhood not available'}</span>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDaysRemainingColor(listing.daysRemaining)}`}>
+            2 {listing.daysRemaining} days left
+          </span>
+        </div>
+      </div>
+
+      {/* Details Grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <div>
+          <span className="text-gray-500">Date Listed:</span>
+          <span className="ml-2 font-medium">{listing.date || 'Date not available'}</span>
+        </div>
+        
+        <div>
+          <span className="text-gray-500">Total Units:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_info.total_units || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Avg Rent:</span>
+          <span className="ml-2 font-medium">{listing.averageRent ? formatCurrency(listing.averageRent) : 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Residential:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_info.residential_units || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Vacant Res:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_info.vacant_residential || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Commercial:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_info.commercial_units || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Vacant Com:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_info.vacant_commercial || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Unit Mix:</span>
+          <span className="ml-2 font-medium">{listing.basic_property_infounit_mix || 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">NOI:</span>
+          <span className="ml-2 font-medium">{listing.financial_data.net_operating_income ? formatCurrency(listing.financial_data.net_operating_income) : 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Cap Rate:</span>
+          <span className="ml-2 font-medium">{listing.capRate ? formatPercent(listing.capRate) : 'Not available'}</span>
+        </div>
+
+        <div>
+          <span className="text-gray-500">Asking Price:</span>
+          <span className="ml-2 font-medium">{listing.askingPrice ? formatCurrency(listing.askingPrice) : 'Not available'}</span>
+        </div>
+
+        <div className="flex justify-end">
+          <button className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+            Edit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
