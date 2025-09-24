@@ -108,6 +108,10 @@ function App() {
             <div key={listing.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
               <div className="p-6">
                 <div className="mb-4">
+                    <p>
+                      <span className="font-medium text-gray-900">Date:</span>{' '}
+                      {listing.date?.toLocaleString()}
+                    </p>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                     {listing.address?.full_address || 'Address not available'}
                   </h3>

@@ -2,6 +2,8 @@ import pdfplumber
 import re
 import os
 from typing import Dict, List, Optional, Union
+import requests
+from typing import Dict, Optional
 
 def parse_copa3_form(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -14,6 +16,151 @@ def parse_copa3_form(pdf_path):
 
         return cleaned_text
 
+def extract_address_components(address_string):
+    """
+    Extract street address, secondary address, and zip code from a full address string.
+    
+    Args:
+        address_string (str): Full address string
+        
+    Returns:
+        dict: Contains 'street_address', 'secondary_address', and 'zip_code' fields
+    """
+    if not address_string:
+        return {'street_address': '', 'secondary_address': '', 'zip_code': ''}
+    
+    # Extract zip code (5 digits, optionally followed by +4)
+    zip_match = re.search(r'\b(\d{5}(?:-\d{4})?)\b', address_string)
+    zip_code = zip_match.group(1) if zip_match else ''
+    
+    # Remove San Francisco CA and zip code from the string
+    cleaned_address = address_string
+    
+    # Remove zip code
+    if zip_code:
+        cleaned_address = re.sub(r'\b' + re.escape(zip_code) + r'\b', '', cleaned_address)
+    
+    # Remove San Francisco and CA patterns
+    patterns_to_remove = [
+        r'\s*,?\s*San Francisco\s*,?\s*CA\s*',
+        r'\s*,?\s*San Francisco\s*',
+        r'\s*,?\s*CA\s*',
+        r'\s+San Francisco\s+CA\s*',
+        r'\s+San Francisco\s*',
+        r'\s+CA\s*'
+    ]
+    
+    for pattern in patterns_to_remove:
+        cleaned_address = re.sub(pattern, '', cleaned_address, flags=re.IGNORECASE)
+    
+    # Clean up any trailing/leading commas and whitespace
+    cleaned_address = re.sub(r'^[,\s]+|[,\s]+$', '', cleaned_address)
+    
+    # Now split by slash first (higher priority), then comma
+    if '/' in cleaned_address:
+        parts = [part.strip() for part in cleaned_address.split('/')]
+    elif ',' in cleaned_address:
+        parts = [part.strip() for part in cleaned_address.split(',')]
+    else:
+        parts = [cleaned_address.strip()]
+    
+    # Filter out empty parts
+    address_parts = [part for part in parts if part.strip()]
+    
+    # Determine primary and secondary addresses
+    if len(address_parts) >= 2:
+        street_address = address_parts[0]
+        secondary_address = address_parts[1]
+    elif len(address_parts) == 1:
+        street_address = address_parts[0]
+        secondary_address = ''
+    else:
+        street_address = ''
+        secondary_address = ''
+    
+    return {
+        'street_address': street_address,
+        'secondary_address': secondary_address,
+        'zip_code': zip_code
+    }
+
+def extract_address(cleaned_text):
+    
+    # Pattern 1: Standard format with full state (CA) - from process_data.py
+    standard_pattern = r'(.*?)Property Address:\s*([^,]+,\s*[A-Z]{2}\s*\d{5})'
+    standard_match = re.search(standard_pattern, cleaned_text, re.DOTALL)
+    
+    if standard_match:
+        before_label = standard_match.group(1).strip()
+        city_state_zip = standard_match.group(2).strip()
+        
+        # Look for street address with standard suffixes
+        street_match = re.search(r'(\d+[\w\s-]+(?:Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Boulevard|Blvd))', before_label)
+        if street_match:
+            street_address = street_match.group(1).strip()
+            full_address = f"{street_address}, {city_state_zip}"
+            components = extract_address_components(full_address)
+            
+            return {
+                'full_address': full_address,
+                'street_address': components['street_address'],
+                'secondary_address': components['secondary_address'],
+                'zip_code': components['zip_code'],
+                'property_type': 'single_building'
+            }
+    
+    # Pattern 2: Flexible format (missing CA or other variations)
+    flexible_pattern = r'(.*?)Property Address:\s*([^\n]+)'
+    flexible_match = re.search(flexible_pattern, cleaned_text, re.DOTALL)
+    
+    if flexible_match:
+        before_label = flexible_match.group(1).strip()
+        city_state_zip = flexible_match.group(2).strip()
+        
+        # Extract just the ZIP and city from the line
+        zip_match = re.search(r'([^,\n]*(?:San Francisco)[^,\n]*\d{5})', city_state_zip)
+        if zip_match:
+            clean_city_zip = zip_match.group(1).strip()
+        else:
+            clean_city_zip = city_state_zip
+            
+        # Word-based extraction for tricky cases
+        parts = before_label.split('Property Address:')[0]
+        words = parts.strip().split()
+        
+        # Look for address in last few words
+        if len(words) >= 2:
+            for i in range(max(0, len(words)-6), len(words)):
+                if words[i] and words[i][0].isdigit():
+                    street_address = ' '.join(words[i:])
+                    full_address = f"{street_address}, {clean_city_zip}"
+                    components = extract_address_components(full_address)
+                    
+                    return {
+                        'full_address': full_address,
+                        'street_address': components['street_address'],
+                        'secondary_address': components['secondary_address'],
+                        'zip_code': components['zip_code'],
+                        'property_type': 'single_building'
+                    }
+    
+    # Pattern 3: Fallback - address completely after "Property Address:"
+    single_address = re.search(r'Property Address:\s*(\d+[^,\n]+,\s*[^,]+,\s*[A-Z]{2}\s*\d{5})', cleaned_text)
+    if single_address:
+        full_address = single_address.group(1).strip()
+        components = extract_address_components(full_address)
+        
+        return {
+            'full_address': full_address,
+            'street_address': components['street_address'],
+            'secondary_address': components['secondary_address'],
+            'zip_code': components['zip_code'],
+            'property_type': 'single_building'
+        }
+    
+    return None
+
+'''
 def extract_address(cleaned_text):
     
     # Pattern 1: Standard format with full state (CA) - from process_data.py
@@ -70,6 +217,83 @@ def extract_address(cleaned_text):
             'property_type': 'single_building'
         }
     
+    return None
+'''
+
+def get_location_from_address(address: Dict[str, str]) -> Optional[Dict[str, float]]:
+    """
+    Convert a San Francisco address object to latitude and longitude coordinates.
+    For corner buildings, tries both street addresses to get the best result.
+    
+    Args:
+        address (Dict): Address object containing:
+            - street_address: Primary street address
+            - secondary_address: Alternate street address (for corner buildings)
+            - zip_code: ZIP code
+            - property_type: Type of property (not used in geocoding)
+    
+    Returns:
+        Dict with 'lat' and 'lng' keys, or None if geocoding fails
+    """
+    
+    def _geocode_address_string(addr_string: str) -> Optional[Dict[str, float]]:
+        """Helper function to geocode a single address string."""
+        try:
+            url = 'https://nominatim.openstreetmap.org/search'
+            params = {
+                'q': addr_string,
+                'format': 'json',
+                'limit': 1,
+                'countrycodes': 'us'
+            }
+            
+            headers = {
+                'User-Agent': 'SF-Address-Geocoder/1.0'
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data and len(data) > 0:
+                result = data[0]
+                result = {
+                    'lat': float(result['lat']),
+                    'lng': float(result['lon'])
+                }
+                print(f"Geocoding result for {addr_string}: {result}")
+                return result
+            return None
+            
+        except (requests.RequestException, KeyError, ValueError, IndexError):
+            return None
+    
+    # Build address strings to try
+    addresses_to_try = []
+    
+    # Try primary street address first
+    if address.get('street_address'):
+        addr_parts = [address['street_address'], 'San Francisco', 'CA']
+        if address.get('zip_code'):
+            addr_parts.append(address['zip_code'])
+        addresses_to_try.append(', '.join(addr_parts))
+    
+    # Try secondary address (alternate street for corner buildings)
+    if address.get('secondary_address'):
+        addr_parts = [address['secondary_address'], 'San Francisco', 'CA']
+        if address.get('zip_code'):
+            addr_parts.append(address['zip_code'])
+        addresses_to_try.append(', '.join(addr_parts))
+    
+    # Try geocoding each address until we get a result
+    for addr_string in addresses_to_try:
+        result = _geocode_address_string(addr_string)
+        if result:
+            print(f"Geocoding result for {addr_string}: {result}")
+            return result
+    
+    print(f"No results found for any address variants")
     return None
 
 def extract_basic_property_info(cleaned_text: str) -> Dict[str, Union[str, int, bool]]:
