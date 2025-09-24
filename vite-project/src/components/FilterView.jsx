@@ -1,4 +1,4 @@
-import './FIlterView.css'
+import './FilterView.css'
 
 export default function FilterView() {
 
