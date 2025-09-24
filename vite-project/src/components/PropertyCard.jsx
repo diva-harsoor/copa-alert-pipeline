@@ -19,9 +19,9 @@ export default function PropertyCard({ listing }) {
 
   // Helper function to get days remaining color
   const getDaysRemainingColor = (days) => {
-    if (days <= 2) return 'text-red-600 bg-red-50';
-    if (days <= 4) return 'text-yellow-600 bg-yellow-50';
-    return 'text-green-600 bg-green-50';
+    if (days <= 2) return 'text-red-600 bg-red-100';
+    if (days <= 4) return 'text-orange-600 bg-orange-100';
+    return 'text-amber-700 bg-amber-100';
   };
 
   return (
@@ -31,8 +31,8 @@ export default function PropertyCard({ listing }) {
         <h3 className="font-semibold text-lg text-gray-900">{listing.address.street_address}</h3>
         <div className="flex items-center justify-between mt-1">
           <span className="text-gray-600 text-sm">{listing.neighborhood || 'Neighborhood not available'}</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDaysRemainingColor(listing.daysRemaining)}`}>
-            2 {listing.daysRemaining} days left
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDaysRemainingColor(3)}`}>
+            3 {listing.daysRemaining} days left
           </span>
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function PropertyCard({ listing }) {
         </div>
 
         <div className="flex justify-end">
-          <button className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+          <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
             Edit
           </button>
         </div>

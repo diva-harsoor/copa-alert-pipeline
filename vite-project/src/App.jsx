@@ -7,6 +7,7 @@ import Auth from './components/Auth'
 import PropertyCardCollection from './components/PropertyCardCollection'
 import FilterView from './components/FilterView'
 import MapView from './components/MapView'
+import NavBar from './components/NavBar'
 //import './migrate-data.js'
 
 function App() {
@@ -88,27 +89,26 @@ function App() {
 
   return (
 
-    <div className="h-screen flex flex-col">
-    {/* Nav bar <NavBar className="flex-shrink-0" /> */}
+    <div className="h-screen flex flex-col overflow-hidden">
+      <NavBar className="flex-shrink-0" logout={handleLogout}/>
     
-    <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
     {/* Main content area */}
-    <div className="flex-1 grid grid-cols-12 min-h-0">
+    <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
         {/* Map - 9 columns = 75%  */}
-        <div className="col-span-8 relative">
+        <div className="col-span-8 relative overflow-hidden">
           <MapView />
         </div>
 
       {/* Sidebar - 3 columns = 25% */}
-      <div className="col-span-4 bg-white border-r overflow-y-auto">
-        {/* Sidebar content */}
-        <FilterView />
-        <PropertyCardCollection propertyData={propertyData} />
+      <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
+        {/* FilterView fixed at the top */}
+        <div className="flex-shrink-0">
+          <FilterView />
+        </div>
+        {/* PropertyCardCollection scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <PropertyCardCollection propertyData={propertyData} />
+        </div>
       </div>
       
     </div>

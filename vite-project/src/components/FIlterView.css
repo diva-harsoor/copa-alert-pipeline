@@ -1,0 +1,52 @@
+/* Custom slider styling - sunset colors for both thumb and track */
+
+/* Reset and base styling */
+.custom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: linear-gradient(to right, #dc2626, #ea580c, #f59e0b, #fbbf24); /* red -> orange -> amber (reversed) */
+    border-radius: 4px;
+    outline: none;
+  }
+  
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .custom-slider::-webkit-slider-track {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: transparent;
+    border-radius: 4px;
+  }
+  
+  .custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #dc2626, #ea580c); /* red -> orange (reversed) */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Firefox */
+  .custom-slider::-moz-range-track {
+    height: 8px;
+    background: linear-gradient(to right, #dc2626, #ea580c, #f59e0b, #fbbf24); /* red -> orange -> amber (reversed) */
+    border-radius: 4px;
+    border: none;
+  }
+  
+  .custom-slider::-moz-range-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #dc2626, #ea580c); /* red -> orange (reversed) */
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+  
