@@ -17,7 +17,7 @@ function App() {
   const [session, setSession] = useState(null);
   const [filter, setFilter] = useState({
     neighborhood: 'all',
-    units: null,
+    units: 0,
     daysLeft: 3,
   });
   const [selectedListing, setSelectedListing] = useState(null);
@@ -62,7 +62,7 @@ function App() {
         if (filter.units === 2) {
           query = query
             .gte('basic_property_info->total_units', 11)
-            .lte('basic_property_info->total_ units', 25)
+            .lte('basic_property_info->total_units', 25)
         }
         if (filter.units === 3) {
           query = query
