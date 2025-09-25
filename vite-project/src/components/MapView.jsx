@@ -1,4 +1,13 @@
-function MapView() {
+import { useState, useEffect } from 'react';
+import {APIProvider, Map, AdvancedMarker, InfoWindow} from '@vis.gl/react-google-maps';
+import './MapView.css';
+
+function MapView( {propertyData} ) {
+  const [hoveredMarker, setHoveredMarker] = useState(null);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
   const handleZoomIn = () => {
     // Placeholder for zoom functionality
     console.log('Zoom in clicked');
@@ -15,45 +24,66 @@ function MapView() {
   };
 
   return (
-    <div className="relative h-full w-full">
-      {/* Static Map Background */}
-      <img 
-        src="/StaticMapOfSF.png" 
-        alt="Map of San Francisco" 
-        className="h-full w-full object-cover"
-      />
-      
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-        {/* Zoom In */}
-        <button
-          onClick={handleZoomIn}
-          className="w-10 h-10 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 flex items-center justify-center text-gray-700 font-bold text-lg"
-          title="Zoom In"
-        >
-          +
-        </button>
+    <APIProvider apiKey={googleMapsApiKey}>
+      <Map
+        center={{ lat: 37.75, lng: -122.44 }}
+        zoom={12.5}
+        mapId="f8ee6d0fa08a34dff1b50156"
+      >
+
+        {propertyData.map(listing => (
+          <AdvancedMarker
+            key={listing.id}
+            position={{ lat: listing.location.lat, lng: listing.location.lng }}
+            onMouseEnter={() => {
+              if (hoverTimeout) clearTimeout(hoverTimeout);
+              setHoveredMarker(listing);
+            }}
+            onMouseLeave={() => {
+              const timeout = setTimeout(() => {
+                setHoveredMarker(null);
+              }, 150);
+              setHoverTimeout(timeout);
+            }}
+          >
+            <div className="marker-icon"  
+            />
+          </AdvancedMarker>
+        ))}
+
+        {/* Info window */}
+        {hoveredMarker && (
+          <InfoWindow
+            position={{ lat: hoveredMarker.location.lat + 0.005, lng: hoveredMarker.location.lng }}
+            options={{
+              disableAutoPan: true,
+              headerDisabled: true,
+            }}
+            onMouseEnter={() => {
+                if (hoverTimeout) clearTimeout(hoverTimeout);
+              }}
+            onMouseLeave={() => {
+              const timeout = setTimeout(() => {
+                setHoveredMarker(null);
+              }, 150);
+              setHoverTimeout(timeout)
+            }}
+          >
+            <div>
+              <h3>{hoveredMarker.address.street_address}</h3>
+              <p>{hoveredMarker.basic_property_info.total_units} units</p>
+              <p>{hoveredMarker.financial_data.average_rent? hoveredMarker.listing.financial_data.average_rent : 'Average rent not available'}</p>
+            </div>        
+          </InfoWindow>
+        )
+
+        }
         
-        {/* Zoom Out */}
-        <button
-          onClick={handleZoomOut}
-          className="w-10 h-10 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 flex items-center justify-center text-gray-700 font-bold text-lg"
-          title="Zoom Out"
-        >
-          −
-        </button>
-        
-        {/* Reset to Default View */}
-        <button
-          onClick={handleResetView}
-          className="w-10 h-10 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 flex items-center justify-center text-gray-700"
-          title="Reset View"
-        >
-          🏠
-        </button>
-      </div>
-    </div>
-  );
+
+
+      </Map>
+    </APIProvider>
+);
 }
 
 export default MapView;

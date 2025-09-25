@@ -8,7 +8,6 @@ import PropertyCardCollection from './components/PropertyCardCollection'
 import FilterView from './components/FilterView'
 import MapView from './components/MapView'
 import NavBar from './components/NavBar'
-import {APIProvider, Map, Marker, InfoWindow, useMap} from '@vis.gl/react-google-maps';
 //import './migrate-data.js'
 
 function App() {
@@ -22,7 +21,6 @@ function App() {
     daysLeft: 3,
   });
 
-  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
     // Get initial session
@@ -124,17 +122,7 @@ function App() {
     <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
         {/* Map - 9 columns = 75%  */}
         <div className="col-span-8 relative overflow-hidden">
-          <APIProvider apiKey={googleMapsApiKey}>
-            <Map
-              center={{ lat: 37.75, lng: -122.44 }}
-              zoom={12.5}
-            >
-              {propertyData.map(listing => 
-                <Marker position={{ lat: listing.location.lat, lng: listing.location.lng }}/> 
-              )}
-            </Map>
-          </APIProvider>
-          { /* <MapView /> */}
+          <MapView propertyData={propertyData} />
         </div>
 
       {/* Sidebar - 3 columns = 25% */}
