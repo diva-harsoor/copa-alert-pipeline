@@ -117,7 +117,7 @@ function App() {
   return (
 
     <div className="h-screen flex flex-col overflow-hidden">
-      <NavBar className="flex-shrink-0" logout={handleLogout}/>
+      <NavBar className="flex-shrink-0" handleLogout={handleLogout}/>
     
     {/* Main content area */}
     <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
