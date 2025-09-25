@@ -12,7 +12,7 @@ import NavBar from './components/NavBar'
 
 function App() {
   const [propertyData, setPropertyData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
   const [filter, setFilter] = useState({
@@ -37,19 +37,17 @@ function App() {
 
   }, [])
 
-  useEffect(() => {
-    if (session) {
-      fetchData()
-    } else {
-      setPropertyData([])
-      setLoading(false)
-    }
-  }, [session])
 
   useEffect(() => {
+    if (!session) {
+      setPropertyData([])
+      setInitialLoading(false)
+      return
+    }
+
     console.log('Filter:', filter)
     async function fetchFilteredProperties() {
-      setLoading(true)
+      // setLoading(true)
 
       let query = supabase.from('copa_listings').select('*')
 
@@ -82,31 +80,11 @@ function App() {
         setPropertyData(data)
       }
 
-      setLoading(false)
+      setInitialLoading(false)
     }
     
     fetchFilteredProperties()
-  }, [filter])
-
-  const fetchData = async () => {
-    setLoading(true)
-    console.log('Fetching data from Supabase...')
-    
-    const { data, error } = await supabase
-      .from('copa_listings')
-      .select('*')
-    
-    console.log('Supabase response:', { data, error })
-    
-    if (error) {
-      console.error('Supabase error:', error)
-      setError(error.message)
-    } else {
-      console.log('Data received:', data?.length, 'properties')
-      setPropertyData(data || [])
-    }
-    setLoading(false)
-  }
+  }, [filter, session])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -131,7 +109,7 @@ function App() {
   }, [])
   */
 
-  if (loading) return <div>Loading property data...</div>
+  if (initialLoading) return <div>Loading property data...</div>
   if (error) return <div>Error loading property data: {error}</div>
 
   return (
