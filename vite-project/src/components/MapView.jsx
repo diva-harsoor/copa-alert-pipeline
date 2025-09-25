@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {APIProvider, Map, AdvancedMarker, InfoWindow} from '@vis.gl/react-google-maps';
 import './MapView.css';
 
-function MapView( {propertyData} ) {
+function MapView( {propertyData, setSelectedListing} ) {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
 
@@ -44,6 +44,9 @@ function MapView( {propertyData} ) {
                 setHoveredMarker(null);
               }, 150);
               setHoverTimeout(timeout);
+            }}
+            onClick={() => {
+              setSelectedListing(listing);
             }}
           >
             <div className="marker-icon"  

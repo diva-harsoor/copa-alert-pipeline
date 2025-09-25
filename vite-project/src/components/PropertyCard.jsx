@@ -1,5 +1,5 @@
 
-export default function PropertyCard({ listing }) {
+export default function PropertyCard({ listing, expanded, setSelectedListing }) {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (!amount) return 'N/A';
@@ -28,6 +28,16 @@ export default function PropertyCard({ listing }) {
     <div className="py-4 border-b border-gray-200 text-left">
       {/* Header */}
       <div className="mb-3">
+        {expanded && (
+          <div className="flex justify-end">
+            <button 
+              className="px-3 py-1 text-xs rounded hover:text-red-600"
+              onClick={() => setSelectedListing(null)}>
+              Return to full list
+            </button>
+          </div>
+        )
+        }
         <h3 className="font-semibold text-lg text-gray-900">{listing.address.street_address}</h3>
         <div className="flex items-center justify-between mt-1">
           <span className="text-gray-600 text-sm">{listing.neighborhood || 'Neighborhood not available'}</span>

@@ -20,6 +20,7 @@ function App() {
     units: null,
     daysLeft: 3,
   });
+  const [selectedListing, setSelectedListing] = useState(null);
 
 
   useEffect(() => {
@@ -122,18 +123,20 @@ function App() {
     <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
         {/* Map - 9 columns = 75%  */}
         <div className="col-span-8 relative overflow-hidden">
-          <MapView propertyData={propertyData} />
+          <MapView propertyData={propertyData} setSelectedListing={setSelectedListing}/>
         </div>
 
       {/* Sidebar - 3 columns = 25% */}
       <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
         {/* FilterView fixed at the top */}
-        <div className="flex-shrink-0">
-          <FilterView filter={filter} setFilter={setFilter} />
-        </div>
+        {!selectedListing && (
+          <div className="flex-shrink-0">
+            <FilterView filter={filter} setFilter={setFilter} />
+          </div>
+        )}
         {/* PropertyCardCollection scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <PropertyCardCollection propertyData={propertyData} />
+          <PropertyCardCollection propertyData={propertyData} selectedListing={selectedListing} setSelectedListing={setSelectedListing} />
         </div>
       </div>
       
