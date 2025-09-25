@@ -15,6 +15,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
+  const [filter, setFilter] = useState({
+    neighborhood: 'all',
+    units: null,
+    daysLeft: 3,
+  });
 
   useEffect(() => {
     // Get initial session
@@ -40,6 +45,48 @@ function App() {
       setLoading(false)
     }
   }, [session])
+
+  useEffect(() => {
+    console.log('Filter:', filter)
+    async function fetchFilteredProperties() {
+      setLoading(true)
+
+      let query = supabase.from('copa_listings').select('*')
+
+      if (filter.units) {
+        if (filter.units === 1) {
+          query = query
+            .gte('basic_property_info->total_units', 1)
+            .lte('basic_property_info->total_units', 10)
+        }
+        if (filter.units === 2) {
+          query = query
+            .gte('basic_property_info->total_units', 11)
+            .lte('basic_property_info->total_ units', 25)
+        }
+        if (filter.units === 3) {
+          query = query
+            .gte('basic_property_info->total_units', 26)
+            .lte('basic_property_info->total_units', 49)
+        }
+        if (filter.units === 4) {
+          query = query.gte('basic_property_info->total_units', 50)
+        }
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching filtered properties:', error)
+      } else {
+        setPropertyData(data)
+      }
+
+      setLoading(false)
+    }
+    
+    fetchFilteredProperties()
+  }, [filter])
 
   const fetchData = async () => {
     setLoading(true)
@@ -103,7 +150,7 @@ function App() {
       <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
         {/* FilterView fixed at the top */}
         <div className="flex-shrink-0">
-          <FilterView />
+          <FilterView filter={filter} setFilter={setFilter} />
         </div>
         {/* PropertyCardCollection scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0">

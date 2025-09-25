@@ -1,6 +1,6 @@
 import './FilterView.css'
 
-export default function FilterView() {
+export default function FilterView({ filter, setFilter }) {
 
     return (
       <div className="p-4 border-b bg-white">
@@ -32,16 +32,39 @@ export default function FilterView() {
         <div>
           <div className="mb-2 flex flex-wrap gap-2">
           <label className="text-sm font-medium text-gray-700">🏢 Units:</label>
-            <button className="px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200">
+            <button onClick={() => setFilter({ ...filter, units: 1 })}
+                    className={`px-3 py-1 text-xs rounded-full border hover:bg-opacity-80 ${
+                      filter.units === 1 
+                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200' 
+                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                    }`}>
               1-10
             </button>
-            <button className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
+            <button onClick={() => setFilter({ ...filter, units: 2 })}
+                    className={`px-3 py-1 text-xs rounded-full border hover:bg-opacity-80 ${
+                      filter.units === 2 
+                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200' 
+                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                    }`}
+              >
               11-25
             </button>
-            <button className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
+            <button onClick={() => setFilter({ ...filter, units: 3 })}
+                    className={`px-3 py-1 text-xs rounded-full border hover:bg-opacity-80 ${
+                      filter.units === 3 
+                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200' 
+                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                    }`}
+                    >
               26-49
             </button>
-            <button className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
+            <button onClick={() => setFilter({ ...filter, units: 4 })}
+                    className={`px-3 py-1 text-xs rounded-full border hover:bg-opacity-80 ${
+                      filter.units === 4 
+                        ? 'bg-indigo-100 text-indigo-700 border-indigo-200' 
+                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                    }`}
+              >
               50+
             </button>
           </div>
@@ -56,6 +79,7 @@ export default function FilterView() {
               min="1"
               max="5"
               value="3"
+              readOnly
               className="custom-slider w-full rounded-lg appearance-none cursor-pointer"
             />
           </div>
