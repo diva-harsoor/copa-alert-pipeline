@@ -8,20 +8,29 @@ function MapView( {propertyData, setSelectedListing} ) {
 
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+  // Helper function to extract lat/lng from GeoJSON
+  const getLatLng = (location) => {
+    if (!location || !location.coordinates) return null;
+    
+    // GeoJSON format is [longitude, latitude]
+    const [lng, lat] = location.coordinates;
+    return { lat, lng };
+  };
+
   const handleZoomIn = () => {
-    // Placeholder for zoom functionality
     console.log('Zoom in clicked');
   };
 
   const handleZoomOut = () => {
-    // Placeholder for zoom functionality
     console.log('Zoom out clicked');
   };
 
   const handleResetView = () => {
-    // Placeholder for reset view functionality
     console.log('Reset view clicked');
   };
+
+  // Get position for hovered marker info window
+  const hoveredPosition = hoveredMarker ? getLatLng(hoveredMarker.location) : null;
 
   return (
     <APIProvider apiKey={googleMapsApiKey}>
@@ -31,13 +40,45 @@ function MapView( {propertyData, setSelectedListing} ) {
         mapId="f8ee6d0fa08a34dff1b50156"
       >
 
-        {propertyData.map(listing => (
-          <AdvancedMarker
-            key={listing.id}
-            position={{ lat: listing.location.lat, lng: listing.location.lng }}
+        {propertyData.map(listing => {
+          const position = getLatLng(listing.location);
+          
+          // Skip if no valid coordinates
+          if (!position) return null;
+
+          return (
+            <AdvancedMarker
+              key={listing.id}
+              position={position}
+              onMouseEnter={() => {
+                if (hoverTimeout) clearTimeout(hoverTimeout);
+                setHoveredMarker(listing);
+              }}
+              onMouseLeave={() => {
+                const timeout = setTimeout(() => {
+                  setHoveredMarker(null);
+                }, 150);
+                setHoverTimeout(timeout);
+              }}
+              onClick={() => {
+                setSelectedListing(listing);
+              }}
+            >
+              <div className="marker-icon" />
+            </AdvancedMarker>
+          );
+        })}
+
+        {/* Info window */}
+        {hoveredMarker && hoveredPosition && (
+          <InfoWindow
+            position={{ lat: hoveredPosition.lat + 0.005, lng: hoveredPosition.lng }}
+            options={{
+              disableAutoPan: true,
+              headerDisabled: true,
+            }}
             onMouseEnter={() => {
               if (hoverTimeout) clearTimeout(hoverTimeout);
-              setHoveredMarker(listing);
             }}
             onMouseLeave={() => {
               const timeout = setTimeout(() => {
@@ -45,48 +86,22 @@ function MapView( {propertyData, setSelectedListing} ) {
               }, 150);
               setHoverTimeout(timeout);
             }}
-            onClick={() => {
-              setSelectedListing(listing);
-            }}
-          >
-            <div className="marker-icon"  
-            />
-          </AdvancedMarker>
-        ))}
-
-        {/* Info window */}
-        {hoveredMarker && (
-          <InfoWindow
-            position={{ lat: hoveredMarker.location.lat + 0.005, lng: hoveredMarker.location.lng }}
-            options={{
-              disableAutoPan: true,
-              headerDisabled: true,
-            }}
-            onMouseEnter={() => {
-                if (hoverTimeout) clearTimeout(hoverTimeout);
-              }}
-            onMouseLeave={() => {
-              const timeout = setTimeout(() => {
-                setHoveredMarker(null);
-              }, 150);
-              setHoverTimeout(timeout)
-            }}
           >
             <div>
-              <h3>{hoveredMarker.address.street_address}</h3>
-              <p>{hoveredMarker.basic_property_info.total_units} units</p>
-              <p>{hoveredMarker.financial_data.average_rent? hoveredMarker.listing.financial_data.average_rent : 'Average rent not available'}</p>
+              <h3>{hoveredMarker.details.address_breakdown.street_address}</h3>
+              {hoveredMarker.total_units > 0 &&
+                <p>{hoveredMarker.total_units} units</p>
+              }
+              {hoveredMarker.details.financial_data?.average_rent &&
+                <p>{hoveredMarker.details.financial_data?.average_rent}</p>
+              }
             </div>        
           </InfoWindow>
-        )
-
-        }
-        
-
+        )}
 
       </Map>
     </APIProvider>
-);
+  );
 }
 
 export default MapView;

@@ -4,6 +4,8 @@ import os
 from typing import Dict, List, Optional, Union
 import requests
 from typing import Dict, Optional
+from sodapy import Socrata
+from shapely.geometry import shape, Point
 
 def parse_copa3_form(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
@@ -262,7 +264,6 @@ def get_location_from_address(address: Dict[str, str]) -> Optional[Dict[str, flo
                     'lat': float(result['lat']),
                     'lng': float(result['lon'])
                 }
-                print(f"Geocoding result for {addr_string}: {result}")
                 return result
             return None
             
@@ -294,7 +295,35 @@ def get_location_from_address(address: Dict[str, str]) -> Optional[Dict[str, flo
             return result
     
     print(f"No results found for any address variants")
-    return None
+    return {}
+
+def load_sf_neighborhoods():
+    """Load and return processed neighborhood data."""
+    client = Socrata("data.sfgov.org", None)
+    neighborhoods = client.get("gfpk-269f", limit=2000)
+    
+    processed = []
+    for n in neighborhoods:
+        try:
+            # Convert GeoJSON dict to shapely geometry
+            geometry = shape(n['the_geom'])
+            processed.append({
+                'name': n['name'],
+                'geometry': geometry
+            })
+        except Exception as e:
+            print(f"Error processing {n.get('name', 'Unknown')}: {e}")
+            continue
+    
+    return processed
+
+def get_neighborhood_from_location(lat, lng, neighborhoods):
+    """Get neighborhood from location"""        
+    point = Point(lng, lat)
+    for neighborhood in neighborhoods:
+        if neighborhood['geometry'].contains(point):
+            return neighborhood['name']
+    return 'Unknown neighborhood'
 
 def extract_basic_property_info(cleaned_text: str) -> Dict[str, Union[str, int, bool]]:
     """Extract basic property information from COPA form text"""

@@ -8,7 +8,7 @@ import PropertyCardCollection from './components/PropertyCardCollection'
 import FilterView from './components/FilterView'
 import MapView from './components/MapView'
 import NavBar from './components/NavBar'
-//import './migrate-data.js'
+// import './migrate-data.js'
 
 function App() {
   const [propertyData, setPropertyData] = useState([]);
@@ -51,26 +51,26 @@ function App() {
     async function fetchFilteredProperties() {
       // setLoading(true)
 
-      let query = supabase.from('copa_listings').select('*')
+      let query = supabase.from('copa_listings_new').select('*')
 
       if (filter.units) {
         if (filter.units === 1) {
           query = query
-            .gte('basic_property_info->total_units', 1)
-            .lte('basic_property_info->total_units', 10)
+            .gte('total_units', 1)
+            .lte('total_units', 10)
         }
         if (filter.units === 2) {
           query = query
-            .gte('basic_property_info->total_units', 11)
-            .lte('basic_property_info->total_units', 25)
+            .gte('total_units', 11)
+            .lte('total_units', 25)
         }
         if (filter.units === 3) {
           query = query
-            .gte('basic_property_info->total_units', 26)
-            .lte('basic_property_info->total_units', 49)
+            .gte('total_units', 26)
+            .lte('total_units', 49)
         }
         if (filter.units === 4) {
-          query = query.gte('basic_property_info->total_units', 50)
+          query = query.gte('total_units', 50)
         }
       }
 
