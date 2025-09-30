@@ -17,11 +17,48 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
     return `${rate}%`;
   };
 
+  const calculateDaysRemaining = (timeSentTz) => {
+    if (!timeSentTz) return null;
+    
+    const sentDate = new Date(timeSentTz);
+    const expiryDate = new Date(sentDate);
+    expiryDate.setDate(expiryDate.getDate() + 5); // Add 5 days to sent date
+    
+    const now = new Date();
+    const diffTime = expiryDate - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return Math.max(0, diffDays); // Return 0 if expired
+  };
+
   // Helper function to get days remaining color
-  const getDaysRemainingColor = (days) => {
-    if (days <= 2) return 'text-red-600 bg-red-100';
-    if (days <= 4) return 'text-orange-600 bg-orange-100';
-    return 'text-amber-700 bg-amber-100';
+  const getDaysCounter = (time_sent_tz) => {
+
+    let days = calculateDaysRemaining(time_sent_tz)
+    let text = 'days left';
+
+    let color = 'text-amber-700 bg-amber-100';
+    if (days <= 3) {
+      color = 'text-orange-600 bg-orange-100';
+    }
+    if (days <= 1) {
+      color = 'text-red-600 bg-red-100';
+      text = 'day left';
+    }
+
+    if (days <= 0) {
+      return (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-100`}> 
+          Past COPA 
+        </span>
+      );
+    }
+
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}> 
+        {days} {text}
+      </span>
+    );
   };
 
   return (
@@ -41,9 +78,7 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
         <h3 className="font-semibold text-lg text-gray-900">{listing.details.address_breakdown.street_address}</h3>
         <div className="flex items-center justify-between mt-1">
           <span className="text-gray-600 text-sm">{listing.neighborhood || 'Neighborhood not available'}</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDaysRemainingColor(3)}`}>
-            3 {listing.daysRemaining} days left
-          </span>
+          {getDaysCounter(listing.time_sent_tz)}
         </div>
       </div>
 
