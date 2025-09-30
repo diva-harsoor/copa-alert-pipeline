@@ -117,8 +117,15 @@ export default function FilterView({ filter, setFilter }) {
 
     {/* Clear Filters */}
     <div className="mt-4 pt-3 border-t border-gray-200">
-      <button className="text-sm text-gray-500 hover:text-gray-700">
-        Clear all filters
+      <button className="text-sm text-gray-500 hover:text-gray-700"
+        onClick={() => setFilter({
+          neighborhoods: [],
+          units: null,
+          daysLeft: 1,
+          showActive: false
+        })}
+      >
+        Reset all filters
       </button>
     </div>
   </div>
