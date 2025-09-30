@@ -70,21 +70,37 @@ export default function FilterView({ filter, setFilter }) {
           </div>
         </div>
 
+      {/* Show Active/Show All Toggle */}
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="checkbox"
+          id="showActive"
+          checked={filter.showActive}
+          onChange={(e) => setFilter({...filter, showActive: e.target.checked})}
+          className="rounded"
+        />
+        <label htmlFor="showExpired" className="text-sm font-medium text-gray-700">
+          Only show active listings
+        </label>
+      </div>
+
         {/* Days Remaining Filter - Slider */}
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">⏰ Days Left:</label>
-          <div className="flex-1">
-            <input
-              type="range"
-              min="1"
-              max="5"
-              value="3"
-              readOnly
-              className="custom-slider w-full rounded-lg appearance-none cursor-pointer"
-            />
+        {filter.showActive && (
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">⏰ Days Left (Minimum):</label>
+            <div className="flex-1">
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={filter.daysLeft}
+                onChange={(e) => setFilter({...filter, daysLeft: Number(e.target.value)})}
+                className="custom-slider w-full rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+            <span className="text-sm font-medium text-indigo-600 w-8">{filter.daysLeft}</span>
           </div>
-          <span className="text-sm font-medium text-indigo-600 w-8">3</span>
-        </div>
+        )}
       </div>
 
       {/* Clear Filters */}

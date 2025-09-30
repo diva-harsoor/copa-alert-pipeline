@@ -17,10 +17,25 @@ function App() {
   const [session, setSession] = useState(null);
   const [filter, setFilter] = useState({
     neighborhood: 'all',
-    units: 0,
-    daysLeft: 3,
+    units: null,
+    daysLeft: 1,
+    showActive: false,
   });
   const [selectedListing, setSelectedListing] = useState(null);
+
+  const calculateDaysRemaining = (timeSentTz) => {
+    if (!timeSentTz) return null;
+    
+    const sentDate = new Date(timeSentTz);
+    const expiryDate = new Date(sentDate);
+    expiryDate.setDate(expiryDate.getDate() + 5); // Add 5 days to sent date
+    
+    const now = new Date();
+    const diffTime = expiryDate - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return Math.max(0, diffDays); // Return 0 if expired
+  };
 
 
   useEffect(() => {
@@ -47,46 +62,33 @@ function App() {
       return
     }
 
-    console.log('Filter:', filter)
-    async function fetchFilteredProperties() {
-      // setLoading(true)
-
-      let query = supabase.from('copa_listings_new').select('*')
-
-      if (filter.units) {
-        if (filter.units === 1) {
-          query = query
-            .gte('total_units', 1)
-            .lte('total_units', 10)
-        }
-        if (filter.units === 2) {
-          query = query
-            .gte('total_units', 11)
-            .lte('total_units', 25)
-        }
-        if (filter.units === 3) {
-          query = query
-            .gte('total_units', 26)
-            .lte('total_units', 49)
-        }
-        if (filter.units === 4) {
-          query = query.gte('total_units', 50)
-        }
-      }
-
-      const { data, error } = await query
+    async function fetchAllProperties() {
+      
+      const { data, error } = await supabase.from('copa_listings_new').select('*')
 
       if (error) {
-        console.error('Error fetching filtered properties:', error)
+        console.error('Error fetching properties:', error)
       } else {
         setPropertyData(data)
       }
-
       setInitialLoading(false)
     }
-    
-    fetchFilteredProperties()
-  }, [filter, session])
+    fetchAllProperties()
+  }, [session])
+
+  const filteredProperties = propertyData.filter(listing => {
+    if (filter.units === 1 && (listing.total_units < 1 || listing.total_units > 10)) return false
+    if (filter.units === 2 && (listing.total_units < 11 || listing.total_units > 25)) return false
+    if (filter.units === 3 && (listing.total_units < 26 || listing.total_units > 49)) return false
+    if (filter.units === 4 && listing.total_units < 50) return false
+
+    if (filter.showActive) {
+      const daysLeft = calculateDaysRemaining(listing.time_sent_tz);
+      if (daysLeft < filter.daysLeft) return false;  
+    }
+
+    return true;
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -136,7 +138,7 @@ function App() {
         )}
         {/* PropertyCardCollection scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <PropertyCardCollection propertyData={propertyData} selectedListing={selectedListing} setSelectedListing={setSelectedListing} />
+          <PropertyCardCollection propertyData={filteredProperties} selectedListing={selectedListing} setSelectedListing={setSelectedListing} />
         </div>
       </div>
       
