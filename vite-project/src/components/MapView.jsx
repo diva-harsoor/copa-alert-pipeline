@@ -1,10 +1,64 @@
-import { useState, useEffect } from 'react';
-import {APIProvider, Map, AdvancedMarker, InfoWindow} from '@vis.gl/react-google-maps';
+import { useState, useEffect, useRef } from 'react';
+import { useNeighborhoods } from '../hooks/useNeighborhoods';
+import { APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import './MapView.css';
+
+function NeighborhoodOverlay({ neighborhoods }) {
+  const map = useMap();
+  const mapsLibrary = useMapsLibrary('maps');
+  const polygonsRef = useRef([]);
+
+  useEffect(() => {
+    if (!map || !neighborhoods || !mapsLibrary) return;
+
+    // Clear existing polygons
+    polygonsRef.current.forEach(polygon => polygon.setMap(null));
+    polygonsRef.current = [];
+
+    // Create new polygons
+    neighborhoods.forEach(neighborhood => {
+      try {
+        const coords = neighborhood.the_geom.coordinates;
+        
+        // Handle different GeoJSON geometry types
+        let coordinates;
+        if (neighborhood.the_geom.type === 'MultiPolygon') {
+          // MultiPolygon: coordinates[0][0] gives first polygon's outer ring
+          coordinates = coords[0][0].map(([lng, lat]) => ({ lat, lng }));
+        } else {
+          // Polygon: coordinates[0] gives outer ring
+          coordinates = coords[0].map(([lng, lat]) => ({ lat, lng }));
+        }
+
+        const polygon = new mapsLibrary.Polygon({
+          paths: coordinates,
+          strokeColor: "#9CA3AF",
+          strokeWeight: 1,
+          fillColor: "#E5E7EB",
+          fillOpacity: 0.1,
+          clickable: false,
+          map: map
+        });
+
+        polygonsRef.current.push(polygon);
+      } catch (error) {
+        console.error(`Error creating polygon for ${neighborhood.name}:`, error);
+      }
+    });
+
+    // Cleanup
+    return () => {
+      polygonsRef.current.forEach(polygon => polygon.setMap(null));
+    };
+  }, [map, neighborhoods, mapsLibrary]);
+
+  return null;
+}
 
 function MapView( {propertyData, setSelectedListing} ) {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
+  const { neighborhoods, loading, error } = useNeighborhoods();
 
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -16,6 +70,15 @@ function MapView( {propertyData, setSelectedListing} ) {
     const [lng, lat] = location.coordinates;
     return { lat, lng };
   };
+
+  function convertGeoJSONToLatLng(coordinates) {
+    // Handle MultiPolygon outer array for multiple polygons
+    if (coordinates[0][0][0] && Array.isArray(coordinates[0][0][0])) {
+      return coordinates[0][0].map(([lng, lat]) => ({ lat, lng}));
+    }
+    // Handle Polygon
+    return coordinates[0].map(([lng, lat]) => ({ lat, lng }));
+  }
 
   const handleZoomIn = () => {
     console.log('Zoom in clicked');
@@ -39,6 +102,7 @@ function MapView( {propertyData, setSelectedListing} ) {
         zoom={12.5}
         mapId="f8ee6d0fa08a34dff1b50156"
       >
+        <NeighborhoodOverlay neighborhoods={neighborhoods} />
 
         {propertyData.map(listing => {
           const position = getLatLng(listing.location);

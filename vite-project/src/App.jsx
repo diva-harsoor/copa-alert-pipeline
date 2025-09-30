@@ -76,6 +76,7 @@ function App() {
     fetchAllProperties()
   }, [session])
 
+
   const filteredProperties = propertyData.filter(listing => {
     if (filter.units === 1 && (listing.total_units < 1 || listing.total_units > 10)) return false
     if (filter.units === 2 && (listing.total_units < 11 || listing.total_units > 25)) return false
@@ -125,7 +126,7 @@ function App() {
     <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
         {/* Map - 9 columns = 75%  */}
         <div className="col-span-8 relative overflow-hidden">
-          <MapView propertyData={propertyData} setSelectedListing={setSelectedListing}/>
+          <MapView propertyData={filteredProperties} setSelectedListing={setSelectedListing}/>
         </div>
 
       {/* Sidebar - 3 columns = 25% */}
