@@ -3,7 +3,8 @@ import { useNeighborhoods } from '../hooks/useNeighborhoods';
 import { APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import './MapView.css';
 
-function NeighborhoodOverlay({ neighborhoods }) {
+
+function NeighborhoodOverlay({ neighborhoods, handleNeighborhoodClick, selectedNeighborhoods }) {
   const map = useMap();
   const mapsLibrary = useMapsLibrary('maps');
   const polygonsRef = useRef([]);
@@ -30,14 +31,20 @@ function NeighborhoodOverlay({ neighborhoods }) {
           coordinates = coords[0].map(([lng, lat]) => ({ lat, lng }));
         }
 
+        const isSelected = selectedNeighborhoods.includes(neighborhood.name);
+
         const polygon = new mapsLibrary.Polygon({
           paths: coordinates,
-          strokeColor: "#9CA3AF",
-          strokeWeight: 1,
-          fillColor: "#E5E7EB",
-          fillOpacity: 0.1,
-          clickable: false,
+          strokeColor: isSelected ? "#3B82F6" : "#9CA3AF",
+          strokeWeight: isSelected ? 2 : 1,
+          fillColor: isSelected ? "#3B82F6" : "#E5E7EB",
+          fillOpacity: isSelected ? 0.3 : 0.1,
+          clickable: true,
           map: map
+        });
+
+        polygon.addListener('click', () => {
+          handleNeighborhoodClick(neighborhood.name);
         });
 
         polygonsRef.current.push(polygon);
@@ -50,12 +57,12 @@ function NeighborhoodOverlay({ neighborhoods }) {
     return () => {
       polygonsRef.current.forEach(polygon => polygon.setMap(null));
     };
-  }, [map, neighborhoods, mapsLibrary]);
+  }, [map, neighborhoods, mapsLibrary, handleNeighborhoodClick, selectedNeighborhoods]);
 
   return null;
 }
 
-function MapView( {propertyData, setSelectedListing} ) {
+function MapView( {propertyData, setSelectedListing, filter, setFilter} ) {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const { neighborhoods, loading, error } = useNeighborhoods();
@@ -70,6 +77,14 @@ function MapView( {propertyData, setSelectedListing} ) {
     const [lng, lat] = location.coordinates;
     return { lat, lng };
   };
+
+  const handleNeighborhoodClick = (neighborhood) => {
+    const updated = filter.neighborhoods.includes(neighborhood)
+      ? filter.neighborhoods.filter(n => n !== neighborhood)
+      : [...filter.neighborhoods, neighborhood];
+    setFilter({...filter, neighborhoods: updated});
+    console.log('Updated neighborhoods:', updated);
+  }  
 
   function convertGeoJSONToLatLng(coordinates) {
     // Handle MultiPolygon outer array for multiple polygons
@@ -102,7 +117,11 @@ function MapView( {propertyData, setSelectedListing} ) {
         zoom={12.5}
         mapId="f8ee6d0fa08a34dff1b50156"
       >
-        <NeighborhoodOverlay neighborhoods={neighborhoods} />
+        <NeighborhoodOverlay 
+          neighborhoods={neighborhoods} 
+          handleNeighborhoodClick={handleNeighborhoodClick} 
+          selectedNeighborhoods={filter.neighborhoods || []}
+        />
 
         {propertyData.map(listing => {
           const position = getLatLng(listing.location);
