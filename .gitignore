@@ -54,4 +54,6 @@ vite-project/yarn-error.log*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db
+Thumbs.dbauto_import_historical_emails.sh
+batch_import_debug.sh
+get-gmail-token.py
