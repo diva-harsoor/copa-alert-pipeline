@@ -57,3 +57,8 @@ ehthumbs.db
 Thumbs.dbauto_import_historical_emails.sh
 batch_import_debug.sh
 get-gmail-token.py
+
+# Email parser credentials
+email-parser/.env
+email-parser/credentials/
+
