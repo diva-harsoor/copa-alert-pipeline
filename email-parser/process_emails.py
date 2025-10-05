@@ -483,6 +483,19 @@ def process_email(email, neighborhoods):
     # Insert into copa_listings_new
     print(f"\nInserting into copa_listings_new...")
     try:
+        # Separate details from other fields
+        details = listing_data.pop('details')
+        
+        # Call the database function to insert with encryption
+        result = supabase.rpc(
+            'insert_listing_with_encryption',
+            {
+                'listing_data': listing_data,
+                'details_to_encrypt': details
+            }
+        ).execute()
+
+        '''
         listing_response = supabase.table('copa_listings_new')\
             .insert(listing_data)\
             .execute()
@@ -490,6 +503,9 @@ def process_email(email, neighborhoods):
         print(f"Insert response: {listing_response}")
         
         listing_id = listing_response.data[0]['id']
+        '''
+
+        listing_id = result.data
         print(f"✓ Created listing: {listing_id}")
         
         # Mark email as processed and link to listing
