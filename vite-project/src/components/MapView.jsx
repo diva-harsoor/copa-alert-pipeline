@@ -171,13 +171,15 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter} ) {
             }}
           >
             <div>
-              <h3>{hoveredMarker.details.address_breakdown.street_address}</h3>
+              <h3>{hoveredMarker.full_address}</h3>
               {hoveredMarker.total_units > 0 &&
                 <p>{hoveredMarker.total_units} units</p>
               }
+              {/*
               {hoveredMarker.details.financial_data?.average_rent &&
                 <p>{hoveredMarker.details.financial_data?.average_rent}</p>
               }
+              */}
             </div>        
           </InfoWindow>
         )}

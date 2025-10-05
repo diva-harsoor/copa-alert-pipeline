@@ -75,7 +75,7 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
           </div>
         )
         }
-        <h3 className="font-semibold text-lg text-gray-900">{listing.details.address_breakdown.street_address}</h3>
+        <h3 className="font-semibold text-lg text-gray-900">{listing.full_address}</h3>
         <div className="flex items-center justify-between mt-1">
           <span className="text-gray-600 text-sm">{listing.neighborhood || 'Neighborhood not available'}</span>
           {getDaysCounter(listing.time_sent_tz)}
@@ -133,6 +133,7 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
           </div>
         }
 
+        {/*
         {listing.details.unit_mix &&
           <div>
             <span className="text-gray-500">Unit Mix:</span>
@@ -166,6 +167,7 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
           
         </>
         }
+        */}
 
       </div>
       <div className="flex justify-end">
