@@ -171,7 +171,7 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter} ) {
             }}
           >
             <div>
-              <h3>{hoveredMarker.full_address}</h3>
+              <h3>{hoveredMarker.address.street_address}</h3>
               {hoveredMarker.total_units > 0 &&
                 <p>{hoveredMarker.total_units} units</p>
               }

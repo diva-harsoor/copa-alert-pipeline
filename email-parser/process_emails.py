@@ -10,6 +10,9 @@ import requests
 from typing import Dict, Optional
 from sodapy import Socrata
 from shapely.geometry import shape, Point
+import pdfplumber
+import re
+from process_data import parse_copa3_form, extract_address, extract_basic_property_info, extract_seller_info, extract_financial_info
 
 # Initialize Supabase client
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
@@ -174,29 +177,29 @@ def normalize_address(address):
     return normalized
 
 
-def check_duplicate_listing(full_address):
+# Update the check_duplicate_listing function:
+def check_duplicate_listing(address_obj):
     """
     Check if a listing already exists for this address.
-    Returns existing listing_id if duplicate found, None otherwise.
+    address_obj is a dict with full_address, street_address, secondary_address, zip_code
     """
-    if not full_address:
+    if not address_obj or not address_obj.get('full_address'):
         return None
     
     try:
-        # Normalize address for comparison
-        normalized_address = normalize_address(full_address)
+        normalized_address = normalize_address(address_obj['full_address'])
         
-        # Get all listings and check with normalized comparison
-        # This is more reliable than SQL ILIKE for address matching
         response = supabase.table('copa_listings_new')\
-            .select('id, full_address, time_sent_tz')\
+            .select('id, address, time_sent_tz')\
             .execute()
         
         for listing in response.data:
-            existing_normalized = normalize_address(listing.get('full_address', ''))
+            # address is now JSONB, so extract full_address
+            existing_full_address = listing.get('address', {}).get('full_address', '')
+            existing_normalized = normalize_address(existing_full_address)
             
             if existing_normalized == normalized_address:
-                print(f"    Match found: '{listing['full_address']}' ≈ '{full_address}'")
+                print(f"    Match found: '{existing_full_address}' ≈ '{address_obj['full_address']}'")
                 return listing['id']
         
         return None
@@ -205,7 +208,112 @@ def check_duplicate_listing(full_address):
         print(f"    ⚠ Error checking for duplicates: {e}")
         return None
 
-# Not using this until we have a AI service secure enough for taking tenant info
+
+def is_copa3_form(pdf_path):
+    """Check if PDF contains a COPA3 form on any page"""
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            if len(pdf.pages) == 0:
+                return False
+            
+            # COPA3 markers
+            markers = [
+                "Certificate of Property Addresses",
+                "Property Address:",
+                "Total # of units",
+                "# of residential units"
+            ]
+            
+            # Check each page
+            for page in pdf.pages:
+                text = page.extract_text()
+                
+                if not text:
+                    continue
+                
+                # Require at least 2 markers on a single page
+                if sum(marker in text for marker in markers) >= 2:
+                    return True
+            
+            return False
+            
+    except Exception as e:
+        print(f"  ✗ Error checking if COPA3: {e}")
+        return False
+
+
+def parse_copa3_form_local(pdf_path):
+    """Parse COPA3 form from multi-page PDF"""
+    
+    try:
+        # Find which page has the COPA3 form
+        copa3_page_num = None
+        
+        with pdfplumber.open(pdf_path) as pdf:
+            markers = [
+                "Certificate of Property Addresses",
+                "Property Address:",
+                "Total # of units",
+                "# of residential units"
+            ]
+            
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                if text and sum(marker in text for marker in markers) >= 2:
+                    copa3_page_num = i
+                    break
+        
+        if copa3_page_num is None:
+            return {}
+        
+        # Extract text from the COPA3 page
+        with pdfplumber.open(pdf_path) as pdf:
+            text = pdf.pages[copa3_page_num].extract_text()
+            cleaned_text = re.sub(r'[_*]+', '', text)
+            cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+        
+        # Use your existing extraction functions
+        address = extract_address(cleaned_text)
+        property_info = extract_basic_property_info(cleaned_text)
+        seller_info = extract_seller_info(cleaned_text)
+        financial_info = extract_financial_info(cleaned_text)
+        
+        if not address:
+            return {}
+        
+        # Return in format matching database schema
+        return {
+            'classification': 'listing',
+            'confidence': 'high',
+            'address': {
+                'full_address': address.get('full_address'),
+                'street_address': address.get('street_address'),
+                'secondary_address': address.get('secondary_address'),
+                'zip_code': address.get('zip_code')
+            },
+            'asking_price': financial_info.get('asking_price', -1),
+            'total_units': property_info.get('total_units', -1),
+            'residential_units': property_info.get('residential_units', -1),
+            'vacant_residential': property_info.get('vacant_residential', -1),
+            'commercial_units': property_info.get('commercial_units', -1),
+            'vacant_commercial': property_info.get('vacant_commercial', -1),
+            'is_vacant_lot': property_info.get('is_vacant_lot', False),
+            'details': {
+                'sender_phone_number': None,
+                'soft_story_required': property_info.get('soft_story_required'),
+                'sqft': -1,
+                'parking_spaces': -1,
+                'financial_data': financial_info,
+                'rent_roll': []
+            }
+        }
+        
+    except Exception as e:
+        print(f"  ✗ Error parsing COPA3 form: {e}")
+        import traceback
+        traceback.print_exc()
+        return {}
+
 def download_attachment(storage_path):
     """
     Download attachment from Supabase storage to temp file.
@@ -268,9 +376,6 @@ def process_email(email, neighborhoods):
     email_text = email.get('raw_text', '') or email.get('raw_html', '')
     print(f"Email body length: {len(email_text)} characters")
     
-    # Commented out until we have a AI service secure enough to take tenant info
-
-    '''
     # Get attachments
     print(f"\nQuerying attachments for email_id={email_id}...")
     attachments_response = supabase.table('email_attachments')\
@@ -285,12 +390,11 @@ def process_email(email, neighborhoods):
         print("Attachment details:")
         for att in attachments:
             print(f"  - {att['filename']} ({att['content_type']}, inline={att.get('is_inline')})")
-    '''
 
-    attachment_texts = []
+    copa3_data = {}
+    # safe_attachment_texts = []
 
-    # Commented out until we have a AI service secure enough to take tenant info
-    '''
+    
     for attachment in attachments:
         att_id = attachment['id']
         filename = attachment['filename']
@@ -298,11 +402,13 @@ def process_email(email, neighborhoods):
         
         print(f"\nProcessing attachment: {filename}")
         
+        '''
         # Check if already extracted
         if attachment.get('extracted_text'):
             print(f"  ✓ Using cached text ({len(attachment['extracted_text'])} chars)")
             attachment_texts.append(attachment['extracted_text'])
             continue
+        '''
         
         # Skip inline attachments (usually images in email body)
         if attachment.get('is_inline'):
@@ -321,10 +427,24 @@ def process_email(email, neighborhoods):
             print(f"  ✗ Download failed, skipping")
             continue
         
+        '''
         # Extract text
         print(f"  Extracting text...")
         extracted_text = extract_text_from_file(temp_path, content_type)
         print(f"  Extracted {len(extracted_text)} characters")
+        '''
+
+        # Check if it's a COPA3 form
+        if is_copa3_form(temp_path):
+            print(f"  ✓ Detected COPA3 form")
+            copa3_result = parse_copa3_form_local(temp_path)
+            if copa3_result:
+                print(f"  ✓ Successfully parsed COPA3 form")
+                copa3_data = copa3_result
+            else:
+                print(f"  ⚠ COPA3 detection succeeded but parsing failed")
+        else:
+            print(f"  ⊘ Not a COPA3 form")
         
         # Clean up temp file
         try:
@@ -333,68 +453,25 @@ def process_email(email, neighborhoods):
         except Exception as e:
             print(f"  ⚠ Failed to clean up temp file: {e}")
         
-        # Save extracted text to database
-        if extracted_text:
-            print(f"  Saving extracted text to database...")
-            try:
-                supabase.table('email_attachments')\
-                    .update({'extracted_text': extracted_text})\
-                    .eq('id', att_id)\
-                    .execute()
-                print(f"  ✓ Saved to database")
-                attachment_texts.append(extracted_text)
-            except Exception as e:
-                print(f"  ✗ Failed to save: {e}")
-                import traceback
-                traceback.print_exc()
-    
-    print(f"\nTotal attachment texts collected: {len(attachment_texts)}")
-    '''
-
-    # Parse with AI
-    print(f"\nParsing with AI...")
-
-    parsed_data = parse_email_with_ai(email_subject, email_text, attachment_texts)
-    
-    if not parsed_data:
-        print("  ✗ AI parsing failed")
-        return False
-    
-    print(f"\nParsed data summary:")
-    print(f"  Classification: {parsed_data.get('classification')}")
-    print(f"  Confidence: {parsed_data.get('confidence')}")
-    print(f"  Address: {parsed_data.get('full_address')}")
-    print(f"  Price: {parsed_data.get('asking_price')}")
-    print(f"  Units: {parsed_data.get('total_units')}")
-    
-    # Check classification
-    if parsed_data['classification'] != 'listing':
-        print(f"\n⊘ Skipping: classified as '{parsed_data['classification']}'")
-        
-        # Mark as processed but don't create listing
-        print(f"Marking email as processed (no listing)...")
-        try:
-            supabase.table('emails')\
-                .update({'processed': True, 'processed_at': datetime.now().isoformat()})\
-                .eq('id', email_id)\
-                .execute()
-            print(f"✓ Email marked as processed")
-        except Exception as e:
-            print(f"✗ Failed to update email: {e}")
-            import traceback
-            traceback.print_exc()
-        
+    print(f"COPA3 data found: {bool(copa3_data)}")
+    if not copa3_data:
+        supabase.table('emails')\
+            .update({'processed': True, 'processed_at': datetime.now().isoformat()})\
+            .eq('id', email_id)\
+            .execute()
         return True
-    
+
     # Geocode address and find neighborhood (non-blocking)
     location = None
     neighborhood = None
-    
-    address_breakdown = parsed_data.get('details', {}).get('address_breakdown')
-    if address_breakdown:
-        print(f"\nGeocoding address: {address_breakdown}")
+
+    # address_obj = parsed_data.get('address')
+    address_obj = copa3_data.get('address')
+
+    if address_obj:
+        print(f"\nGeocoding address: {address_obj}")
         try:
-            location = get_location_from_address(address_breakdown)
+            location = get_location_from_address(address_obj)
             
             if location and neighborhoods:
                 print(f"Finding neighborhood...")
@@ -411,27 +488,26 @@ def process_email(email, neighborhoods):
             print(f"  ⚠ Location/neighborhood lookup failed (non-blocking): {e}")
             # Continue processing - don't let this block the listing creation
     
+    details = copa3_data.get('details', {})
+    details['sender_email'] = email.get('from_address')
+
     # Add metadata from email
     listing_data = {
         'time_sent_tz': email['received_date'],
-        'full_address': parsed_data.get('full_address'),
+        'address': copa3_data.get('address'),
         'neighborhood': neighborhood,
-        'asking_price': parsed_data.get('asking_price') if parsed_data.get('asking_price') != -1 else None,
-        'total_units': parsed_data.get('total_units') if parsed_data.get('total_units') != -1 else None,
-        'residential_units': parsed_data.get('residential_units') if parsed_data.get('residential_units') != -1 else None,
-        'vacant_residential': parsed_data.get('vacant_residential') if parsed_data.get('vacant_residential') != -1 else None,
-        'commercial_units': parsed_data.get('commercial_units') if parsed_data.get('commercial_units') != -1 else None,
-        'vacant_commercial': parsed_data.get('vacant_commercial') if parsed_data.get('vacant_commercial') != -1 else None,
-        'is_vacant_lot': parsed_data.get('is_vacant_lot', False),
-        'details': parsed_data.get('details', {})
+        'asking_price': copa3_data.get('asking_price') if copa3_data.get('asking_price') != -1 else None,
+        'total_units': copa3_data.get('total_units') if copa3_data.get('total_units') != -1 else None,
+        'residential_units': copa3_data.get('residential_units') if copa3_data.get('residential_units') != -1 else None,
+        'vacant_residential': copa3_data.get('vacant_residential') if copa3_data.get('vacant_residential') != -1 else None,
+        'commercial_units': copa3_data.get('commercial_units') if copa3_data.get('commercial_units') != -1 else None,
+        'vacant_commercial': copa3_data.get('vacant_commercial') if copa3_data.get('vacant_commercial') != -1 else None,
+        'is_vacant_lot': copa3_data.get('is_vacant_lot', False),
+        'details': details
     }
 
-    parsed_data['details']['sender_email'] = email.get('from_address')
-
-    if parsed_data.get('confidence') == 'low' or parsed_data.get('classification') == 'other' or listing_data.get('neighborhood') is None:
+    if listing_data.get('neighborhood') is None:
         listing_data['flagged'] = True
-    else:
-        listing_data['flagged'] = False
     
     # Add location to details if available
     if location:
@@ -450,11 +526,11 @@ def process_email(email, neighborhoods):
     
     # Check for duplicate listing before inserting into copa_listings_new
     print(f"\nChecking for duplicate listings...")
-    existing_listing_id = check_duplicate_listing(listing_data['full_address'])
+    existing_listing_id = check_duplicate_listing(listing_data['address'])
     
     if existing_listing_id:
         print(f"⚠ Duplicate listing found!")
-        print(f"  Address: {listing_data['full_address']}")
+        print(f"  Address: {listing_data.get('address', {}).get('full_address')}")
         print(f"  Existing listing ID: {existing_listing_id}")
         print(f"  → Linking email to existing listing (not creating new)")
         

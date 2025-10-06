@@ -10,7 +10,12 @@ First, determine if this email is a property listing or something else (promotio
 Extract the following information from the email body and any attached documents (forms, rent rolls, property sheets):
 
 ## Top-Level Fields
-- full_address: Complete property address
+- address: Complete property address
+  - full_address: Full address, including whatever info is available, like multiple addresses and city, state, and zip
+  - street_address: Street number and name ONLY (exclude city, state, zip - e.g., "1125 Webster" not "1125 Webster, San Francisco, CA")
+  - secondary_address: Secondary street address for properties on corner lots or with multiple street addresses (NOT unit/apt numbers)
+  - zip_code: ZIP code
+
 - asking_price: Asking price in dollars (number only, no currency symbols)
 - total_units: Total number of units in the property
 - residential_units: Number of residential units
@@ -78,7 +83,12 @@ Return ONLY valid JSON in exactly this structure. Do not add any additional fiel
 {
   "classification": "listing" or "other",
   "confidence": "high", "medium", or "low",
-  "full_address": "string or null",
+  "address": {
+      "full_address": "string or null"
+      "street_address": "string or null",
+      "secondary_address": "string or null",
+      "zip_code": "string or null"
+  }
   "asking_price": number or -1 if not found,
   "total_units": number or -1 if not found,
   "residential_units": number or -1 if not found,
@@ -87,11 +97,6 @@ Return ONLY valid JSON in exactly this structure. Do not add any additional fiel
   "vacant_commercial": number or -1 if not found,
   "is_vacant_lot": boolean (false if uncertain),
   "details": {
-    "address_breakdown": {
-      "street_address": "string or null",
-      "secondary_address": "string or null",
-      "zip_code": "string or null"
-    },
     "sender_phone_number": "string or null",
     "soft_story_required": boolean or null,
     "sqft": number or -1 if not found,
