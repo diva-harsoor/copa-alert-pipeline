@@ -87,8 +87,13 @@ def extract_address_components(address_string):
     }
 
 def extract_address(cleaned_text):
+    """
+    Extract address from COPA3 or COPA4 form text.
+    Handles both 'Property Address:' (COPA3) and 'Property Address' (COPA4) formats.
+    """
     
-    # Pattern 1: Standard format with full state (CA) - from process_data.py
+    # Try COPA3 format first (with colon)
+    # Pattern 1: Standard format with full state (CA)
     standard_pattern = r'(.*?)Property Address:\s*([^,]+,\s*[A-Z]{2}\s*\d{5})'
     standard_match = re.search(standard_pattern, cleaned_text, re.DOTALL)
     
@@ -111,7 +116,25 @@ def extract_address(cleaned_text):
                 'property_type': 'single_building'
             }
     
-    # Pattern 2: Flexible format (missing CA or other variations)
+    # Try COPA4 format (without colon, ends with "(Property)")
+    copa4_pattern = r'Property Address\s+([^(]+)\s*\(Property\)'
+    copa4_match = re.search(copa4_pattern, cleaned_text)
+    
+    if copa4_match:
+        full_address = copa4_match.group(1).strip()
+        # Remove any trailing underscores or extra whitespace
+        full_address = re.sub(r'[_\s]+$', '', full_address)
+        components = extract_address_components(full_address)
+        
+        return {
+            'full_address': full_address,
+            'street_address': components['street_address'],
+            'secondary_address': components['secondary_address'],
+            'zip_code': components['zip_code'],
+            'property_type': 'single_building'
+        }
+    
+    # Pattern 2: Flexible COPA3 format (missing CA or other variations)
     flexible_pattern = r'(.*?)Property Address:\s*([^\n]+)'
     flexible_match = re.search(flexible_pattern, cleaned_text, re.DOTALL)
     

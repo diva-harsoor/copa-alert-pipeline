@@ -209,60 +209,50 @@ def check_duplicate_listing(address_obj):
         return None
 
 
-def is_copa3_form(pdf_path):
+def find_copa3_form(pdf_path):
     """Check if PDF contains a COPA3 form on any page"""
     try:
-        with pdfplumber.open(pdf_path) as pdf:
-            if len(pdf.pages) == 0:
-                return False
-            
-            # COPA3 markers
-            markers = [
-                "Certificate of Property Addresses",
-                "Property Address:",
-                "Total # of units",
-                "# of residential units"
-            ]
-            
-            # Check each page
-            for page in pdf.pages:
-                text = page.extract_text()
-                
-                if not text:
-                    continue
-                
-                # Require at least 2 markers on a single page
-                if sum(marker in text for marker in markers) >= 2:
-                    return True
-            
-            return False
-            
-    except Exception as e:
-        print(f"  ✗ Error checking if COPA3: {e}")
-        return False
-
-
-def parse_copa3_form_local(pdf_path):
-    """Parse COPA3 form from multi-page PDF"""
-    
-    try:
-        # Find which page has the COPA3 form
-        copa3_page_num = None
+        markers = [
+            "[COPA3]",
+            "Property Address:",
+            "Total # of units",
+            "# of residential units"
+        ]
         
         with pdfplumber.open(pdf_path) as pdf:
-            markers = [
-                "Certificate of Property Addresses",
-                "Property Address:",
-                "Total # of units",
-                "# of residential units"
-            ]
-            
             for i, page in enumerate(pdf.pages):
                 text = page.extract_text()
                 if text and sum(marker in text for marker in markers) >= 2:
-                    copa3_page_num = i
-                    break
+                    return i
+        return None
+    except Exception as e:
+        print(f"  ✗ Error finding COPA3 page: {e}")
+        return None
+
+def find_copa4_form(pdf_path):
+    """Check if PDF contains a COPA3 form on any page"""
+    try:
+        markers = [
+            "[COPA4]",
+            "Property Address",
+            "INTENT TO SELL",
+            "SAN FRANCISCO ASSOCIATION"
+        ]
         
+        with pdfplumber.open(pdf_path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text()
+                if text and sum(marker in text for marker in markers) >= 2:
+                    return i
+        return None
+    except Exception as e:
+        print(f"  ✗ Error finding COPA4 page: {e}")
+        return None
+            
+def parse_copa3_form_local(pdf_path):
+    """Parse COPA3 form from multi-page PDF"""
+    try:
+        copa3_page_num = find_copa3_form(pdf_path)
         if copa3_page_num is None:
             return {}
         
@@ -313,6 +303,52 @@ def parse_copa3_form_local(pdf_path):
         import traceback
         traceback.print_exc()
         return {}
+
+def parse_copa4_form_local(pdf_path):
+    """Parse COPA4 form from multi-page PDF"""
+    try:
+        copa4_page_num = find_copa4_form(pdf_path)
+        if copa4_page_num is None:
+            return {}
+        
+        # Extract text from the COPA4 page
+        with pdfplumber.open(pdf_path) as pdf:
+            text = pdf.pages[copa4_page_num].extract_text()
+            cleaned_text = re.sub(r'[_*]+', '', text)
+            cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
+        
+        # Use your existing extraction functions
+        address = extract_address(cleaned_text)
+        if not address:
+            return {}
+        
+        
+        # Return in format matching database schema
+        return {
+            'classification': 'listing',
+            'confidence': 'high',
+            'address': {
+                'full_address': address.get('full_address'),
+                'street_address': address.get('street_address'),
+                'secondary_address': address.get('secondary_address'),
+                'zip_code': address.get('zip_code')
+            },
+            'asking_price': -1,
+            'total_units': -1,
+            'residential_units': -1,
+            'vacant_residential': -1,
+            'commercial_units': -1,
+            'vacant_commercial': -1,
+            'is_vacant_lot': False,
+            'details': {}
+        }
+        
+    except Exception as e:
+        print(f"  ✗ Error parsing COPA4 form: {e}")
+        import traceback
+        traceback.print_exc()
+        return {}
+
 
 def download_attachment(storage_path):
     """
@@ -391,7 +427,7 @@ def process_email(email, neighborhoods):
         for att in attachments:
             print(f"  - {att['filename']} ({att['content_type']}, inline={att.get('is_inline')})")
 
-    copa3_data = {}
+    copa_form_data = {}
     # safe_attachment_texts = []
 
     
@@ -435,17 +471,20 @@ def process_email(email, neighborhoods):
         '''
 
         # Check if it's a COPA3 form
-        if is_copa3_form(temp_path):
-            print(f"  ✓ Detected COPA3 form")
-            copa3_result = parse_copa3_form_local(temp_path)
-            if copa3_result:
-                print(f"  ✓ Successfully parsed COPA3 form")
-                copa3_data = copa3_result
-            else:
-                print(f"  ⚠ COPA3 detection succeeded but parsing failed")
+        copa_form_result = parse_copa3_form_local(temp_path)
+        if copa_form_result:
+            print(f"  ✓ Successfully parsed COPA3 form")
+            copa_form_data = copa_form_result
         else:
-            print(f"  ⊘ Not a COPA3 form")
-        
+            print(f"  COPA3 not detected or failed to parse, trying COPA4")
+            copa_form_result = parse_copa4_form_local(temp_path)
+            if copa_form_result:
+                print(f"  ✓ Successfully parsed COPA4 form")
+                copa_form_data = copa_form_result
+                break
+            else:
+                print(f"  COPA4 not detected or failed to parse")
+
         # Clean up temp file
         try:
             os.remove(temp_path)
@@ -453,8 +492,8 @@ def process_email(email, neighborhoods):
         except Exception as e:
             print(f"  ⚠ Failed to clean up temp file: {e}")
         
-    print(f"COPA3 data found: {bool(copa3_data)}")
-    if not copa3_data:
+    print(f"COPA form data found: {bool(copa_form_data)}")
+    if not copa_form_data:
         supabase.table('emails')\
             .update({'processed': True, 'processed_at': datetime.now().isoformat()})\
             .eq('id', email_id)\
@@ -466,7 +505,7 @@ def process_email(email, neighborhoods):
     neighborhood = None
 
     # address_obj = parsed_data.get('address')
-    address_obj = copa3_data.get('address')
+    address_obj = copa_form_data.get('address')
 
     if address_obj:
         print(f"\nGeocoding address: {address_obj}")
@@ -488,21 +527,21 @@ def process_email(email, neighborhoods):
             print(f"  ⚠ Location/neighborhood lookup failed (non-blocking): {e}")
             # Continue processing - don't let this block the listing creation
     
-    details = copa3_data.get('details', {})
+    details = copa_form_data.get('details', {})
     details['sender_email'] = email.get('from_address')
 
     # Add metadata from email
     listing_data = {
         'time_sent_tz': email['received_date'],
-        'address': copa3_data.get('address'),
+        'address': copa_form_data.get('address'),
         'neighborhood': neighborhood,
-        'asking_price': copa3_data.get('asking_price') if copa3_data.get('asking_price') != -1 else None,
-        'total_units': copa3_data.get('total_units') if copa3_data.get('total_units') != -1 else None,
-        'residential_units': copa3_data.get('residential_units') if copa3_data.get('residential_units') != -1 else None,
-        'vacant_residential': copa3_data.get('vacant_residential') if copa3_data.get('vacant_residential') != -1 else None,
-        'commercial_units': copa3_data.get('commercial_units') if copa3_data.get('commercial_units') != -1 else None,
-        'vacant_commercial': copa3_data.get('vacant_commercial') if copa3_data.get('vacant_commercial') != -1 else None,
-        'is_vacant_lot': copa3_data.get('is_vacant_lot', False),
+        'asking_price': copa_form_data.get('asking_price') if copa_form_data.get('asking_price') != -1 else None,
+        'total_units': copa_form_data.get('total_units') if copa_form_data.get('total_units') != -1 else None,
+        'residential_units': copa_form_data.get('residential_units') if copa_form_data.get('residential_units') != -1 else None,
+        'vacant_residential': copa_form_data.get('vacant_residential') if copa_form_data.get('vacant_residential') != -1 else None,
+        'commercial_units': copa_form_data.get('commercial_units') if copa_form_data.get('commercial_units') != -1 else None,
+        'vacant_commercial': copa_form_data.get('vacant_commercial') if copa_form_data.get('vacant_commercial') != -1 else None,
+        'is_vacant_lot': copa_form_data.get('is_vacant_lot', False),
         'details': details
     }
 
