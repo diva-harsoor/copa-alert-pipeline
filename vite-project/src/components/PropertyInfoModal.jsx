@@ -1,7 +1,7 @@
 import SourceMaterials from './SourceMaterials'
 import Editor from './Editor'
 
-export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClose }) {
+export default function PropertyInfoModal({ selectedListing, decryptedListing, decrypting, modalIsOpen, onClose }) {
     if (!modalIsOpen || !selectedListing) return null;
   
     // Helper function to format currency
@@ -108,8 +108,18 @@ export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClos
             {/* Right Pane - Editor */}
             <div className="w-3/5 overflow-y-auto p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Property</h3>
-              <Editor listing={selectedListing} />
-              </div>
+
+              {decrypting && (
+                <div className="p-4 text-center text-gray-500">
+                  Decrypting listing details...
+                </div>
+              )}
+
+              {!decrypting && decryptedListing && (
+                <Editor listing={decryptedListing} />
+              )}
+              
+            </div>
           </div>
         </div>
       </div>

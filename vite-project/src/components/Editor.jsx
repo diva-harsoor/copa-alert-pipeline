@@ -10,7 +10,31 @@ export default function Editor({ listing }) {
     residential_units: '',
     vacant_residential: '',
     commercial_units: '',
-    vacant_commercial: ''
+    vacant_commercial: '',
+    // Details section
+    sender_phone_number: '',
+    soft_story_required: null,
+    sqft: '',
+    parking_spaces: '',
+    // Financial data
+    grm: '',
+    cap_rate: '',
+    monthly_income: '',
+    total_rents: '',
+    other_income: '',
+    total_monthly_income: '',
+    total_annual_income: '',
+    annual_expenses: '',
+    less_total_annual_expenses: '',
+    net_operating_income: '',
+    property_tax_rate: '',
+    property_tax_amount: '',
+    management_rate: '',
+    management_amount: '',
+    insurance: '',
+    utilities: '',
+    maintenance: '',
+    other_expenses: ''
   });
   
   const [originalData, setOriginalData] = useState({});
@@ -20,10 +44,14 @@ export default function Editor({ listing }) {
   const [geocoding, setGeocoding] = useState(false);
   const [neighborhoodOptions, setNeighborhoodOptions] = useState([]);
   const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+  const [activeTab, setActiveTab] = useState('basic');
 
   // Populate form with listing data on mount
   useEffect(() => {
     if (listing) {
+      const details = listing.details || {};
+      const financialData = details.financial_data || {};
+      
       const initialData = {
         street_address: listing.address?.street_address || '',
         neighborhood: listing.neighborhood || '',
@@ -32,7 +60,31 @@ export default function Editor({ listing }) {
         residential_units: listing.residential_units || '',
         vacant_residential: listing.vacant_residential || '',
         commercial_units: listing.commercial_units || '',
-        vacant_commercial: listing.vacant_commercial || ''
+        vacant_commercial: listing.vacant_commercial || '',
+        // Details section
+        sender_phone_number: details.sender_phone_number || '',
+        soft_story_required: details.soft_story_required,
+        sqft: details.sqft && details.sqft !== -1 ? details.sqft : '',
+        parking_spaces: details.parking_spaces && details.parking_spaces !== -1 ? details.parking_spaces : '',
+        // Financial data
+        grm: financialData.grm && financialData.grm !== -1 ? financialData.grm : '',
+        cap_rate: financialData.cap_rate && financialData.cap_rate !== -1 ? financialData.cap_rate : '',
+        monthly_income: financialData.monthly_income && financialData.monthly_income !== -1 ? financialData.monthly_income : '',
+        total_rents: financialData.total_rents && financialData.total_rents !== -1 ? financialData.total_rents : '',
+        other_income: financialData.other_income && financialData.other_income !== -1 ? financialData.other_income : '',
+        total_monthly_income: financialData.total_monthly_income && financialData.total_monthly_income !== -1 ? financialData.total_monthly_income : '',
+        total_annual_income: financialData.total_annual_income && financialData.total_annual_income !== -1 ? financialData.total_annual_income : '',
+        annual_expenses: financialData.annual_expenses && financialData.annual_expenses !== -1 ? financialData.annual_expenses : '',
+        less_total_annual_expenses: financialData.less_total_annual_expenses && financialData.less_total_annual_expenses !== -1 ? financialData.less_total_annual_expenses : '',
+        net_operating_income: financialData.net_operating_income && financialData.net_operating_income !== -1 ? financialData.net_operating_income : '',
+        property_tax_rate: financialData.property_tax_rate && financialData.property_tax_rate !== -1 ? financialData.property_tax_rate : '',
+        property_tax_amount: financialData.property_tax_amount && financialData.property_tax_amount !== -1 ? financialData.property_tax_amount : '',
+        management_rate: financialData.management_rate && financialData.management_rate !== -1 ? financialData.management_rate : '',
+        management_amount: financialData.management_amount && financialData.management_amount !== -1 ? financialData.management_amount : '',
+        insurance: financialData.insurance && financialData.insurance !== -1 ? financialData.insurance : '',
+        utilities: financialData.utilities && financialData.utilities !== -1 ? financialData.utilities : '',
+        maintenance: financialData.maintenance && financialData.maintenance !== -1 ? financialData.maintenance : '',
+        other_expenses: financialData.other_expenses && financialData.other_expenses !== -1 ? financialData.other_expenses : ''
       };
       setFormData(initialData);
       setOriginalData(initialData);
@@ -62,16 +114,19 @@ export default function Editor({ listing }) {
     
     loadNeighborhoodOptions();
   }, []);
-  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const geocodeAddress = async () => {
@@ -83,7 +138,6 @@ export default function Editor({ listing }) {
     setGeocoding(true);
     
     try {
-      // Step 1: Geocode the address to get coordinates
       const addressString = `${formData.street_address}, San Francisco, CA`;
       const geocodeResponse = await fetch(
         `https://nominatim.openstreetmap.org/search?${new URLSearchParams({
@@ -113,7 +167,6 @@ export default function Editor({ listing }) {
       
       console.log(`Geocoded to coordinates: ${lat}, ${lng}`);
   
-      // Step 2: Call Supabase function to get neighborhood
       const { data, error } = await supabase.rpc('get_neighborhood_from_coords', {
         lat: lat,
         lng: lng
@@ -143,19 +196,18 @@ export default function Editor({ listing }) {
   const validateForm = () => {
     const newErrors = {};
 
-    // Required fields
     if (!formData.street_address.trim()) {
       newErrors.street_address = 'Address is required';
     }
 
-    // Numeric validations
     const numericFields = [
-      'asking_price', 
-      'total_units', 
-      'residential_units', 
-      'vacant_residential', 
-      'commercial_units', 
-      'vacant_commercial'
+      'asking_price', 'total_units', 'residential_units', 'vacant_residential', 
+      'commercial_units', 'vacant_commercial', 'sqft', 'parking_spaces',
+      'grm', 'cap_rate', 'monthly_income', 'total_rents', 'other_income',
+      'total_monthly_income', 'total_annual_income', 'annual_expenses',
+      'less_total_annual_expenses', 'net_operating_income', 'property_tax_rate',
+      'property_tax_amount', 'management_rate', 'management_amount', 'insurance',
+      'utilities', 'maintenance', 'other_expenses'
     ];
 
     numericFields.forEach(field => {
@@ -167,7 +219,6 @@ export default function Editor({ listing }) {
       }
     });
 
-    // Business logic: residential + commercial should not exceed total
     if (formData.total_units && formData.residential_units && formData.commercial_units) {
       const total = Number(formData.total_units);
       const residential = Number(formData.residential_units);
@@ -183,17 +234,23 @@ export default function Editor({ listing }) {
   };
 
   const handleSave = async () => {
-    // Validate form
     if (!validateForm()) {
       return;
     }
-
+  
     setSaving(true);
     setSaveSuccess(false);
-
+  
     try {
-      // Prepare update data - only include fields that exist in your schema
-      const updateData = {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        alert('User not authenticated');
+        setSaving(false);
+        return;
+      }
+  
+      const listingData = {
         address: {
           street_address: formData.street_address
         },
@@ -205,37 +262,72 @@ export default function Editor({ listing }) {
         commercial_units: formData.commercial_units ? Number(formData.commercial_units) : null,
         vacant_commercial: formData.vacant_commercial ? Number(formData.vacant_commercial) : null
       };
-
-      const { error } = await supabase
-        .from('copa_listings_new')
-        .update(updateData)
-        .eq('id', listing.id);
-
+  
+      const detailsToEncrypt = {
+        sender_phone_number: formData.sender_phone_number || null,
+        soft_story_required: formData.soft_story_required,
+        sqft: formData.sqft ? Number(formData.sqft) : -1,
+        parking_spaces: formData.parking_spaces ? Number(formData.parking_spaces) : -1,
+        financial_data: {
+          grm: formData.grm ? Number(formData.grm) : -1,
+          cap_rate: formData.cap_rate ? Number(formData.cap_rate) : -1,
+          monthly_income: formData.monthly_income ? Number(formData.monthly_income) : -1,
+          total_rents: formData.total_rents ? Number(formData.total_rents) : -1,
+          other_income: formData.other_income ? Number(formData.other_income) : -1,
+          total_monthly_income: formData.total_monthly_income ? Number(formData.total_monthly_income) : -1,
+          total_annual_income: formData.total_annual_income ? Number(formData.total_annual_income) : -1,
+          annual_expenses: formData.annual_expenses ? Number(formData.annual_expenses) : -1,
+          less_total_annual_expenses: formData.less_total_annual_expenses ? Number(formData.less_total_annual_expenses) : -1,
+          net_operating_income: formData.net_operating_income ? Number(formData.net_operating_income) : -1,
+          property_tax_rate: formData.property_tax_rate ? Number(formData.property_tax_rate) : -1,
+          property_tax_amount: formData.property_tax_amount ? Number(formData.property_tax_amount) : -1,
+          management_rate: formData.management_rate ? Number(formData.management_rate) : -1,
+          management_amount: formData.management_amount ? Number(formData.management_amount) : -1,
+          insurance: formData.insurance ? Number(formData.insurance) : -1,
+          utilities: formData.utilities ? Number(formData.utilities) : -1,
+          maintenance: formData.maintenance ? Number(formData.maintenance) : -1,
+          other_expenses: formData.other_expenses ? Number(formData.other_expenses) : -1
+        },
+        rent_roll: listing.details?.rent_roll || []
+      };
+  
+      console.log('Calling update_listing_with_encryption with:', {
+        listing_id_param: listing.id,
+        user_id_param: user.id,
+        listingData,
+        detailsToEncrypt
+      });
+  
+      const { error } = await supabase.rpc('update_listing_with_encryption', {
+        listing_id_param: listing.id,
+        user_id_param: user.id,
+        listing_data: listingData,
+        details_to_encrypt: detailsToEncrypt
+      });
+  
       if (error) {
         console.error('Error saving listing:', error);
         alert('Failed to save changes: ' + error.message);
       } else {
+        console.log('Save successful!');
         setSaveSuccess(true);
-        setOriginalData(formData); // Update original data to match saved data
+        setOriginalData(formData);
         
-        // Clear success message after 3 seconds
         setTimeout(() => {
           setSaveSuccess(false);
         }, 3000);
-
-        // Trigger parent to refresh listing data
+  
         window.dispatchEvent(new CustomEvent('listingUpdated'));
       }
     } catch (error) {
       console.error('Error saving listing:', error);
-      alert('Failed to save changes');
+      alert('Failed to save changes: ' + error.message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    // Reset form to original data
     setFormData(originalData);
     setErrors({});
     setSaveSuccess(false);
@@ -243,187 +335,220 @@ export default function Editor({ listing }) {
 
   const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
 
-  // Check if field was auto-populated (exists in original listing)
   const isAutoPopulated = (fieldName) => {
     if (fieldName === 'street_address') {
       return listing?.address?.street_address;
     }
+    if (['sender_phone_number', 'soft_story_required', 'sqft', 'parking_spaces'].includes(fieldName)) {
+      return listing?.details?.[fieldName];
+    }
+    if (['grm', 'cap_rate', 'monthly_income', 'total_rents', 'other_income', 'total_monthly_income', 
+         'total_annual_income', 'annual_expenses', 'less_total_annual_expenses', 'net_operating_income',
+         'property_tax_rate', 'property_tax_amount', 'management_rate', 'management_amount',
+         'insurance', 'utilities', 'maintenance', 'other_expenses'].includes(fieldName)) {
+      return listing?.details?.financial_data?.[fieldName];
+    }
     return listing && listing[fieldName];
   };
 
+  const renderInput = (name, label, required = false, type = "number") => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        min={type === "number" ? "0" : undefined}
+        step={type === "number" && ['cap_rate', 'property_tax_rate', 'management_rate'].includes(name) ? "0.01" : undefined}
+        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+          isAutoPopulated(name) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
+        } ${errors[name] ? 'border-red-500' : ''}`}
+      />
+      {errors[name] && (
+        <p className="mt-1 text-sm text-red-600">{errors[name]}</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Success Message */}
       {saveSuccess && (
         <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded text-sm">
           Changes saved successfully!
         </div>
       )}
 
-      {/* Form Fields */}
-      <div className="space-y-4">
-        {/* Street Address */}
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street Address <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-            <input
-                type="text"
-                name="street_address"
-                value={formData.street_address}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                isAutoPopulated('street_address') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-                } ${errors.street_address ? 'border-red-500' : ''}`}
-            />
-            <button
-                type="button"
-                onClick={geocodeAddress}
-                disabled={geocoding || !formData.street_address.trim()}
-                className={`px-4 py-2 rounded font-medium whitespace-nowrap ${
-                geocoding || !formData.street_address.trim()
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                }`}
-            >
-                {geocoding ? 'Geocoding...' : 'Find Neighborhood'}
-            </button>
-        </div>
-        <p className="mt-1 text-xs text-gray-500">Click "Find Neighborhood" to auto-fill neighborhood from address</p> 
-    </div>
-
-        {errors.street_address && (
-            <p className="mt-1 text-sm text-red-600">{errors.street_address}</p>
-          )}
-
-
-        {/* Neighborhood */}
-        <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-            Neighborhood
-        </label>
-        <div className="flex gap-2">
-            <select
-            name="neighborhood"
-            value={formData.neighborhood}
-            onChange={handleChange}
-            disabled={loadingNeighborhoods}
-            className={`flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                isAutoPopulated('neighborhood') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('basic')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'basic'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
-            >
-            <option value="">Select a neighborhood...</option>
-            {neighborhoodOptions.map(name => (
-                <option key={name} value={name}>
-                {name}
-                </option>
-            ))}
-            </select>
-        </div>
-        <p className="mt-1 text-xs text-gray-500">Select manually or click "Geocode" to auto-fill from address</p>
-        </div>
+          >
+            Basic Info
+          </button>
+          <button
+            onClick={() => setActiveTab('property')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'property'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Property Details
+          </button>
+          <button
+            onClick={() => setActiveTab('financial')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'financial'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Financial Data
+          </button>
+        </nav>
+      </div>
 
+      {/* Tab Content */}
+      <div className="space-y-4">
+        {activeTab === 'basic' && (
+          <>
+            {/* Street Address */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Street Address <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="street_address"
+                  value={formData.street_address}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    isAutoPopulated('street_address') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
+                  } ${errors.street_address ? 'border-red-500' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={geocodeAddress}
+                  disabled={geocoding || !formData.street_address.trim()}
+                  className={`px-4 py-2 rounded font-medium whitespace-nowrap ${
+                    geocoding || !formData.street_address.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                  }`}
+                >
+                  {geocoding ? 'Geocoding...' : 'Find Neighborhood'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Click "Find Neighborhood" to auto-fill neighborhood from address</p>
+              {errors.street_address && (
+                <p className="mt-1 text-sm text-red-600">{errors.street_address}</p>
+              )}
+            </div>
 
-        {/* Total Units */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Total Units
-          </label>
-          <input
-            type="number"
-            name="total_units"
-            value={formData.total_units}
-            onChange={handleChange}
-            min="0"
-            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              isAutoPopulated('total_units') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-            } ${errors.total_units ? 'border-red-500' : ''}`}
-          />
-          {errors.total_units && (
-            <p className="mt-1 text-sm text-red-600">{errors.total_units}</p>
-          )}
-        </div>
+            {/* Neighborhood */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Neighborhood</label>
+              <select
+                name="neighborhood"
+                value={formData.neighborhood}
+                onChange={handleChange}
+                disabled={loadingNeighborhoods}
+                className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  isAutoPopulated('neighborhood') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
+                }`}
+              >
+                <option value="">Select a neighborhood...</option>
+                {neighborhoodOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">Select manually or click "Find Neighborhood" to auto-fill from address</p>
+            </div>
 
-        {/* Residential Units */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Residential Units
-          </label>
-          <input
-            type="number"
-            name="residential_units"
-            value={formData.residential_units}
-            onChange={handleChange}
-            min="0"
-            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              isAutoPopulated('residential_units') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-            } ${errors.residential_units ? 'border-red-500' : ''}`}
-          />
-          {errors.residential_units && (
-            <p className="mt-1 text-sm text-red-600">{errors.residential_units}</p>
-          )}
-        </div>
+            {/* Asking Price */}
+            {renderInput('asking_price', 'Asking Price')}
+            
+            {/* Total Units */}
+            {renderInput('total_units', 'Total Units')}
+            
+            {/* Residential Units */}
+            {renderInput('residential_units', 'Residential Units')}
+            
+            {/* Vacant Residential */}
+            {renderInput('vacant_residential', 'Vacant Residential')}
+            
+            {/* Commercial Units */}
+            {renderInput('commercial_units', 'Commercial Units')}
+            
+            {/* Vacant Commercial */}
+            {renderInput('vacant_commercial', 'Vacant Commercial')}
+          </>
+        )}
 
-        {/* Vacant Residential */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Vacant Residential
-          </label>
-          <input
-            type="number"
-            name="vacant_residential"
-            value={formData.vacant_residential}
-            onChange={handleChange}
-            min="0"
-            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              isAutoPopulated('vacant_residential') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-            } ${errors.vacant_residential ? 'border-red-500' : ''}`}
-          />
-          {errors.vacant_residential && (
-            <p className="mt-1 text-sm text-red-600">{errors.vacant_residential}</p>
-          )}
-        </div>
+        {activeTab === 'property' && (
+          <>
+            {/* Sender Phone Number */}
+            {renderInput('sender_phone_number', 'Sender Phone Number', false, 'tel')}
+            
+            {/* Soft Story Required */}
+            <div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  name="soft_story_required"
+                  checked={formData.soft_story_required || false}
+                  onChange={handleCheckboxChange}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Soft Story Required</span>
+              </label>
+            </div>
 
-        {/* Commercial Units */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Commercial Units
-          </label>
-          <input
-            type="number"
-            name="commercial_units"
-            value={formData.commercial_units}
-            onChange={handleChange}
-            min="0"
-            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              isAutoPopulated('commercial_units') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-            } ${errors.commercial_units ? 'border-red-500' : ''}`}
-          />
-          {errors.commercial_units && (
-            <p className="mt-1 text-sm text-red-600">{errors.commercial_units}</p>
-          )}
-        </div>
+            {/* Square Footage */}
+            {renderInput('sqft', 'Square Footage')}
+            
+            {/* Parking Spaces */}
+            {renderInput('parking_spaces', 'Parking Spaces')}
+          </>
+        )}
 
-        {/* Vacant Commercial */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Vacant Commercial
-          </label>
-          <input
-            type="number"
-            name="vacant_commercial"
-            value={formData.vacant_commercial}
-            onChange={handleChange}
-            min="0"
-            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              isAutoPopulated('vacant_commercial') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-            } ${errors.vacant_commercial ? 'border-red-500' : ''}`}
-          />
-          {errors.vacant_commercial && (
-            <p className="mt-1 text-sm text-red-600">{errors.vacant_commercial}</p>
-          )}
-        </div>
+        {activeTab === 'financial' && (
+          <>
+            <h3 className="text-lg font-semibold text-gray-900 pt-2">Income</h3>
+            {renderInput('monthly_income', 'Monthly Income')}
+            {renderInput('total_rents', 'Total Rents')}
+            {renderInput('other_income', 'Other Income')}
+            {renderInput('total_monthly_income', 'Total Monthly Income')}
+            {renderInput('total_annual_income', 'Total Annual Income')}
+
+            <h3 className="text-lg font-semibold text-gray-900 pt-4">Expenses</h3>
+            {renderInput('annual_expenses', 'Annual Expenses')}
+            {renderInput('less_total_annual_expenses', 'Less Total Annual Expenses')}
+            {renderInput('property_tax_amount', 'Property Tax Amount')}
+            {renderInput('management_amount', 'Management Amount')}
+            {renderInput('insurance', 'Insurance')}
+            {renderInput('utilities', 'Utilities')}
+            {renderInput('maintenance', 'Maintenance')}
+            {renderInput('other_expenses', 'Other Expenses')}
+
+            <h3 className="text-lg font-semibold text-gray-900 pt-4">Metrics</h3>
+            {renderInput('grm', 'GRM (Gross Rent Multiplier)')}
+            {renderInput('cap_rate', 'Cap Rate (%)')}
+            {renderInput('net_operating_income', 'Net Operating Income (NOI)')}
+            {renderInput('property_tax_rate', 'Property Tax Rate (%)')}
+            {renderInput('management_rate', 'Management Rate (%)')}
+          </>
+        )}
       </div>
 
       {/* Action Buttons */}
@@ -454,7 +579,7 @@ export default function Editor({ listing }) {
 
       {/* Legend */}
       <div className="text-xs text-gray-500 pt-2 border-t">
-        <span className="inline-block px-2 py-1 bg-blue-50 border border-blue-200 rounded mr-2">Blue background</span>
+        <span className="inline-block px-2 py-1 bg-blue-50 border-blue-200 rounded mr-2">Blue background</span>
         = Auto-populated from email
       </div>
     </div>

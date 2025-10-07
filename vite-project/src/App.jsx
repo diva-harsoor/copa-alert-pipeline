@@ -23,6 +23,8 @@ function App() {
     showActive: false,
   });
   const [selectedListing, setSelectedListing] = useState(null);
+  const [decryptedListing, setDecryptedListing] = useState(null);
+  const [decrypting, setDecrypting] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
   const calculateDaysRemaining = (timeSentTz) => {
@@ -77,6 +79,42 @@ function App() {
     }
     fetchAllProperties()
   }, [session])
+
+  useEffect(() => {
+    async function decryptListingDetails() {
+      if (!selectedListing || !session) {
+        setDecryptedListing(null);
+        return;
+      }
+  
+      setDecrypting(true);
+      try {
+        const { data: decryptedDetails, error } = await supabase.rpc('get_listing_details', {
+          listing_id_param: selectedListing.id,
+          user_id_param: session.user.id
+        });
+  
+        if (error) {
+          console.error('Error decrypting details:', error);
+          // Still set the listing but without decrypted details
+          setDecryptedListing(selectedListing);
+        } else {
+          // Combine listing with decrypted details
+          setDecryptedListing({
+            ...selectedListing,
+            details: decryptedDetails
+          });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setDecryptedListing(selectedListing);
+      } finally {
+        setDecrypting(false);
+      }
+    }
+  
+    decryptListingDetails();
+  }, [selectedListing, session]);  
 
   useEffect(() => {
     const handleListingUpdate = async (event) => {
@@ -166,6 +204,8 @@ function App() {
       {/* Modal - renders on top of everything when open */}
       <PropertyInfoModal 
         selectedListing={selectedListing}
+        decryptedListing={decryptedListing}
+        decrypting={decrypting}
         modalIsOpen={modalIsOpen}
         onClose={() => setModalIsOpen(false)}
       />
