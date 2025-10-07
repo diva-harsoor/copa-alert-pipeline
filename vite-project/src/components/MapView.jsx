@@ -62,7 +62,7 @@ function NeighborhoodOverlay({ neighborhoods, handleNeighborhoodClick, selectedN
   return null;
 }
 
-function MapView( {propertyData, setSelectedListing, filter, setFilter} ) {
+function MapView( {propertyData, setSelectedListing, filter, setFilter, openModal} ) {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const { neighborhoods, loading, error } = useNeighborhoods();
@@ -145,6 +145,7 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter} ) {
               }}
               onClick={() => {
                 setSelectedListing(listing);
+                openModal(listing);
               }}
             >
               <div className="marker-icon" />

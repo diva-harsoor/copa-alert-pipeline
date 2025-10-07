@@ -172,6 +172,34 @@ function App() {
     return true;
   });
 
+  // Open the modal and log access to the listing, which contains decrypted data
+  const openModal = async (listing) => {
+    setModalIsOpen(true);
+    setSelectedListing(listing);
+    
+    // Log access to the listing
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user && listing?.id) {
+        const { error } = await supabase
+          .from('access_log')
+          .insert({
+            user_id: user.id,
+            listing_id: listing.id,
+            accessed_at: new Date().toISOString()
+          });
+        
+        if (error) {
+          console.error('Error logging access:', error);
+          // Don't block the modal from opening if logging fails
+        }
+      }
+    } catch (error) {
+      console.error('Error logging access:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
@@ -222,29 +250,27 @@ function App() {
               filter={filter} 
               setFilter={setFilter}
               modalIsOpen={modalIsOpen}
+              openModal={openModal}
             />
           </div>
 
         {/* Sidebar - 3 columns = 25% */}
         <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
           {/* FilterView fixed at the top */}
-          {!selectedListing && (
-            <div className="flex-shrink-0">
-              <FilterView 
-                filter={filter} 
-                setFilter={setFilter} 
-                modalIsOpen={modalIsOpen}
-              />
-            </div>
-          )}
+          <div className="flex-shrink-0">
+            <FilterView 
+              filter={filter} 
+              setFilter={setFilter} 
+            />
+          </div>
           {/* PropertyCardCollection scrollable */}
           <div className="flex-1 overflow-y-auto min-h-0">
             <PropertyCardCollection 
               propertyData={filteredProperties} 
               selectedListing={selectedListing} 
               setSelectedListing={setSelectedListing} 
-              setModalIsOpen={setModalIsOpen} 
               modalIsOpen={modalIsOpen}
+              openModal={openModal}
             />
           </div>
         </div>

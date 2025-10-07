@@ -1,5 +1,5 @@
 
-export default function PropertyCard({ listing, expanded, setModalIsOpen, setSelectedListing }) {
+export default function PropertyCard({ listing, expanded, setSelectedListing, openModal }) {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (!amount) return 'N/A';
@@ -59,11 +59,6 @@ export default function PropertyCard({ listing, expanded, setModalIsOpen, setSel
         {days} {text}
       </span>
     );
-  };
-
-  const openModal = (listing) => {
-    setModalIsOpen(true);
-    setSelectedListing(listing);
   };
 
   return (
@@ -137,42 +132,6 @@ export default function PropertyCard({ listing, expanded, setModalIsOpen, setSel
             <span className="ml-2 font-medium">{listing.vacant_commercial || 'Not available'}</span>
           </div>
         }
-
-        {/*
-        {listing.details.unit_mix &&
-          <div>
-            <span className="text-gray-500">Unit Mix:</span>
-            <span className="ml-2 font-medium">{listing.details.unit_mix || 'Not available'}</span>
-          </div>
-        }
-
-        {listing.details.financial_data &&
-        <>
-          {listing.details.financial_data.averageRent &&
-            <div>
-              <span className="text-gray-500">Avg Rent:</span>
-              <span className="ml-2 font-medium">{listing.details.financial_data?.averageRent ? formatCurrency(listing.details.financial_data.averageRent) : 'Not available'}</span>
-            </div>
-          }
-
-          {listing.details.financial_data.net_operating_income &&
-          <div>
-            <span className="text-gray-500">NOI:</span>
-            <span className="ml-2 font-medium">{listing.details.financial_data?.net_operating_income ? formatCurrency(listing.details.financial_data.net_operating_income) : 'Not available'}</span>
-          </div>
-          }
-
-          {listing.details.financial_data.capRate &&
-          <div>
-            <span className="text-gray-500">Cap Rate:</span>
-            <span className="ml-2 font-medium">{listing.details.financial_data?.capRate ? formatPercent(listing.details.financial_data.capRate) : 'Not available'}</span>
-          </div>
-          }
-
-          
-        </>
-        }
-        */}
 
       </div>
       <div className="flex justify-end">
