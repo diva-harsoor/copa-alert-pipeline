@@ -1,5 +1,5 @@
 
-export default function PropertyCard({ listing, expanded, setSelectedListing }) {
+export default function PropertyCard({ listing, expanded, setModalIsOpen, setSelectedListing }) {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (!amount) return 'N/A';
@@ -59,6 +59,11 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
         {days} {text}
       </span>
     );
+  };
+
+  const openModal = (listing) => {
+    setModalIsOpen(true);
+    setSelectedListing(listing);
   };
 
   return (
@@ -171,8 +176,8 @@ export default function PropertyCard({ listing, expanded, setSelectedListing }) 
 
       </div>
       <div className="flex justify-end">
-        <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200">
-          Edit
+        <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200" onClick={() => openModal(listing)}>
+          Expand
         </button>
       </div>
     </div>

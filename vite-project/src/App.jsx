@@ -8,6 +8,7 @@ import PropertyCardCollection from './components/PropertyCardCollection'
 import FilterView from './components/FilterView'
 import MapView from './components/MapView'
 import NavBar from './components/NavBar'
+import PropertyInfoModal from './components/PropertyInfoModal.jsx'
 // import './migrate-data.js'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
     showActive: false,
   });
   const [selectedListing, setSelectedListing] = useState(null);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
 
   const calculateDaysRemaining = (timeSentTz) => {
     if (!timeSentTz) return null;
@@ -127,30 +129,53 @@ function App() {
   return (
 
     <div className="h-screen flex flex-col overflow-hidden">
+      {/* Modal - renders on top of everything when open */}
+      <PropertyInfoModal 
+        selectedListing={selectedListing}
+        modalIsOpen={modalIsOpen}
+        onClose={() => setModalIsOpen(false)}
+      />
+
       <NavBar className="flex-shrink-0" handleLogout={handleLogout}/>
     
-    {/* Main content area */}
-    <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
-        {/* Map - 9 columns = 75%  */}
-        <div className="col-span-8 relative overflow-hidden">
-          <MapView propertyData={filteredProperties} setSelectedListing={setSelectedListing} filter={filter} setFilter={setFilter}/>
-        </div>
-
-      {/* Sidebar - 3 columns = 25% */}
-      <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
-        {/* FilterView fixed at the top */}
-        {!selectedListing && (
-          <div className="flex-shrink-0">
-            <FilterView filter={filter} setFilter={setFilter} />
+      {/* Main content area */}
+      <div className="flex-1 grid grid-cols-12 min-h-0 overflow-hidden">
+          {/* Map - 9 columns = 75%  */}
+          <div className="col-span-8 relative overflow-hidden">
+            <MapView 
+              propertyData={filteredProperties} 
+              setSelectedListing={setSelectedListing} 
+              filter={filter} 
+              setFilter={setFilter}
+              modalIsOpen={modalIsOpen}
+            />
           </div>
-        )}
-        {/* PropertyCardCollection scrollable */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          <PropertyCardCollection propertyData={filteredProperties} selectedListing={selectedListing} setSelectedListing={setSelectedListing} />
+
+        {/* Sidebar - 3 columns = 25% */}
+        <div className="col-span-4 bg-white border-l flex flex-col min-h-0 overflow-hidden">
+          {/* FilterView fixed at the top */}
+          {!selectedListing && (
+            <div className="flex-shrink-0">
+              <FilterView 
+                filter={filter} 
+                setFilter={setFilter} 
+                modalIsOpen={modalIsOpen}
+              />
+            </div>
+          )}
+          {/* PropertyCardCollection scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <PropertyCardCollection 
+              propertyData={filteredProperties} 
+              selectedListing={selectedListing} 
+              setSelectedListing={setSelectedListing} 
+              setModalIsOpen={setModalIsOpen} 
+              modalIsOpen={modalIsOpen}
+            />
+          </div>
         </div>
+        
       </div>
-      
-    </div>
   </div>
 
 
