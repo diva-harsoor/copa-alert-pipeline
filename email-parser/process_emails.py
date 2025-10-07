@@ -1,5 +1,7 @@
 import json
+import sys
 from supabase import create_client
+from dotenv import load_dotenv
 from datetime import datetime
 import config
 from extract_text import extract_text_from_file
@@ -13,6 +15,8 @@ from shapely.geometry import shape, Point
 import pdfplumber
 import re
 from process_data import parse_copa3_form, extract_address, extract_basic_property_info, extract_seller_info, extract_financial_info
+
+load_dotenv()
 
 # Initialize Supabase client
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
@@ -645,61 +649,54 @@ def process_email(email, neighborhoods):
 
 def main():
     """
-    Main function: process unprocessed emails.
+    Main function: process unprocessed emails from the last 5 minutes,
+    or optionally process historical emails via command line arguments.
     """
     print("="*60)
     print("EMAIL PARSER - Processing Pipeline")
+    print(f"Started at: {datetime.now()}")
     print("="*60)
 
     # Load neighborhoods data once at startup
     neighborhoods = load_sf_neighborhoods()
     if not neighborhoods:
         print("⚠ Warning: Could not load neighborhoods data. Continuing without neighborhood lookup.")
-    
-    # Option to process specific email
-    specific_id = input("Process specific email ID? (leave blank to process batch): ").strip()
-    
-    if specific_id:
-        # Process single email by ID
-        print(f"\nFetching email {specific_id}...")
-        try:
-            email_response = supabase.table('emails')\
-                .select('*')\
-                .eq('id', specific_id)\
-                .execute()
             
-            if not email_response.data:
-                print(f"Email not found: {specific_id}")
-                return
-            
-            emails = email_response.data
-        except Exception as e:
-            print(f"✗ Error fetching email: {e}")
-            return
-    else:
-        # Get number of emails to process
-        limit = input("How many emails to process? (default: 5): ").strip()
-        limit = int(limit) if limit else 5
-        
-        # Query unprocessed emails
-        print(f"\nQuerying {limit} unprocessed emails...")
-        
+    if len(sys.argv) > 1:
+        # Historical processing
         try:
+            limit = int(sys.argv[1])
+            print(f"\n[HISTORICAL MODE] Processing {limit} oldest unprocessed emails...")
+
             emails_response = supabase.table('emails')\
                 .select('*')\
                 .eq('processed', False)\
-                .order('received_date', desc=True)\
+                .order('received_date', desc=False)\
                 .limit(limit)\
                 .execute()
-            
-            emails = emails_response.data
-            print(f"Query returned {len(emails)} emails")
-            
-        except Exception as e:
-            print(f"✗ Error querying emails: {e}")
-            import traceback
-            traceback.print_exc()
+        except ValueError:
+            print(f"✗ Invalid limit: {sys.argv[1]}")
             return
+    else:
+        # Default cron job mode - process up to 25 unprocessed emails
+        print(f"\n[CRON MODE] Processing up to 25 unprocessed emails...")
+    
+        emails_response = supabase.table('emails')\
+            .select('*')\
+            .eq('processed', False)\
+            .order('received_date', desc=True)\
+            .limit(25)\
+            .execute()
+        
+    try:
+        emails = emails_response.data
+        print(f"Query returned {len(emails)} emails")
+        
+    except Exception as e:
+        print(f"✗ Error querying emails: {e}")
+        import traceback
+        traceback.print_exc()
+        return
     
     if not emails:
         print("No emails to process!")
