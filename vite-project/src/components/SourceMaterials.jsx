@@ -117,6 +117,23 @@ export default function SourceMaterials({ listingId }) {
     }
   };
 
+  const handleDownload = async (attachment) => {
+    const url = await getPublicUrl(attachment);
+    if (!url) {
+      alert('Unable to download attachment');
+      return;
+    }
+  
+    // Create a temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = attachment.filename;
+    link.target = '_blank'; // Fallback to open in new tab if download fails
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -209,34 +226,48 @@ export default function SourceMaterials({ listingId }) {
                 {attachments[email.id].map((attachment) => (
                   <div key={attachment.id}>
                     <div 
-                      className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleAttachmentClick(attachment)}
+                    className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleAttachmentClick(attachment)}
                     >
-                      <span className="text-lg">{getFileIcon(attachment.content_type)}</span>
-                      <div className="flex-1 min-w-0">
+                    <span className="text-lg">{getFileIcon(attachment.content_type)}</span>
+                    <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-gray-900 truncate">
-                          {attachment.filename}
+                        {attachment.filename}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {formatFileSize(attachment.file_size)}
+                        {formatFileSize(attachment.file_size)}
                         </div>
-                      </div>
-                      {(isPDF(attachment.content_type) || isImage(attachment.content_type)) ? (
-                        <svg 
-                          className={`w-4 h-4 text-gray-400 transition-transform ${previewAttachment?.id === attachment.id ? 'rotate-180' : ''}`} 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      )}
                     </div>
-
+                    
+                    {/* Download button */}
+                    <button
+                        onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering preview
+                        handleDownload(attachment);
+                        }}
+                        className="p-1 hover:bg-gray-200 rounded"
+                        title="Download"
+                    >
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    
+                    {(isPDF(attachment.content_type) || isImage(attachment.content_type)) ? (
+                        <svg 
+                        className={`w-4 h-4 text-gray-400 transition-transform ${previewAttachment?.id === attachment.id ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    ) : (
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    )}
+                    </div>
                     {/* Preview for PDFs and Images */}
                     {previewAttachment?.id === attachment.id && previewAttachment.url && (
                       <div className="mt-2 border border-gray-300 rounded overflow-hidden bg-white">
