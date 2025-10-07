@@ -1,3 +1,5 @@
+import SourceMaterials from './SourceMaterials'
+
 export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClose }) {
     if (!modalIsOpen || !selectedListing) return null;
   
@@ -95,8 +97,11 @@ export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClos
           <div className="flex-1 flex overflow-hidden">
             {/* Left Pane - Source Materials (placeholder for now) */}
             <div className="w-2/5 border-r border-gray-200 overflow-y-auto p-6">
+            {/* 
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Materials</h3>
               <p className="text-gray-500 text-sm">Email and document viewer coming soon...</p>
+            */}
+              <SourceMaterials listingId={selectedListing.id} />
             </div>
   
             {/* Right Pane - Editor (placeholder for now) */}
