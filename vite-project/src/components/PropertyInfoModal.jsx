@@ -1,4 +1,5 @@
 import SourceMaterials from './SourceMaterials'
+import Editor from './Editor'
 
 export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClose }) {
     if (!modalIsOpen || !selectedListing) return null;
@@ -95,7 +96,7 @@ export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClos
   
           {/* Content Area - Two Panes */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Left Pane - Source Materials (placeholder for now) */}
+            {/* Left Pane - Source Materials */}
             <div className="w-2/5 border-r border-gray-200 overflow-y-auto p-6">
             {/* 
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Materials</h3>
@@ -104,29 +105,11 @@ export default function PropertyInfoModal({ selectedListing, modalIsOpen, onClos
               <SourceMaterials listingId={selectedListing.id} />
             </div>
   
-            {/* Right Pane - Editor (placeholder for now) */}
+            {/* Right Pane - Editor */}
             <div className="w-3/5 overflow-y-auto p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Property</h3>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Date Listed:</span>
-                  <span className="ml-2 font-medium">{selectedListing.date || 'Not available'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Asking Price:</span>
-                  <span className="ml-2 font-medium">{formatCurrency(selectedListing.asking_price)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Residential Units:</span>
-                  <span className="ml-2 font-medium">{selectedListing.residential_units || 'Not available'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Commercial Units:</span>
-                  <span className="ml-2 font-medium">{selectedListing.commercial_units || 'Not available'}</span>
-                </div>
-                <p className="text-gray-500 text-sm mt-6">Editor form coming soon...</p>
+              <Editor listing={selectedListing} />
               </div>
-            </div>
           </div>
         </div>
       </div>

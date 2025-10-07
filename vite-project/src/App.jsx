@@ -78,6 +78,40 @@ function App() {
     fetchAllProperties()
   }, [session])
 
+  useEffect(() => {
+    const handleListingUpdate = async (event) => {
+      // If you pass the listing ID in the event
+      const listingId = selectedListing?.id;
+      
+      if (!listingId) return;
+      
+      // Fetch just the updated listing
+      const { data, error } = await supabase
+        .from('copa_listings_new')
+        .select('*')
+        .eq('id', listingId)
+        .single();
+      
+      if (error) {
+        console.error('Error refreshing listing:', error);
+      } else {
+        // Update the specific listing in propertyData
+        setPropertyData(prev => 
+          prev.map(listing => listing.id === listingId ? data : listing)
+        );
+        
+        // Also update selectedListing so the modal shows fresh data
+        setSelectedListing(data);
+      }
+    };
+  
+    window.addEventListener('listingUpdated', handleListingUpdate);
+    
+    return () => {
+      window.removeEventListener('listingUpdated', handleListingUpdate);
+    };
+  }, [selectedListing]);
+
 
   const filteredProperties = propertyData.filter(listing => {
 
