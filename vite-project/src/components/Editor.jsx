@@ -34,7 +34,7 @@ export default function Editor({ listing }) {
     insurance: '',
     utilities: '',
     maintenance: '',
-    other_expenses: ''
+    other_expenses: '',
   });
   
   const [originalData, setOriginalData] = useState({});
@@ -61,6 +61,10 @@ export default function Editor({ listing }) {
         vacant_residential: listing.vacant_residential || '',
         commercial_units: listing.commercial_units || '',
         vacant_commercial: listing.vacant_commercial || '',
+        location: listing.location ? {
+          lat: listing.location.coordinates?.[1],
+          lng: listing.location.coordinates?.[0]
+        } : null,        
         // Details section
         sender_phone_number: details.sender_phone_number || '',
         soft_story_required: details.soft_story_required,
@@ -84,7 +88,8 @@ export default function Editor({ listing }) {
         insurance: financialData.insurance && financialData.insurance !== -1 ? financialData.insurance : '',
         utilities: financialData.utilities && financialData.utilities !== -1 ? financialData.utilities : '',
         maintenance: financialData.maintenance && financialData.maintenance !== -1 ? financialData.maintenance : '',
-        other_expenses: financialData.other_expenses && financialData.other_expenses !== -1 ? financialData.other_expenses : ''
+        other_expenses: financialData.other_expenses && financialData.other_expenses !== -1 ? financialData.other_expenses : '',
+        flagged: listing.flagged || false
       };
       setFormData(initialData);
       setOriginalData(initialData);
@@ -114,6 +119,10 @@ export default function Editor({ listing }) {
     
     loadNeighborhoodOptions();
   }, []);
+
+  useEffect(() => {
+    console.log('formData CHANGED:', formData);
+  }, [formData]);  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -174,24 +183,43 @@ export default function Editor({ listing }) {
   
       if (error) {
         console.error('Error getting neighborhood:', error);
-        alert('Could not determine neighborhood. Please enter manually.');
+        alert('Could not determine neighborhood. Please check that you are entering just one address and check that it is in San Francisco.');
         setGeocoding(false);
         return;
       }
   
       if (data) {
-        setFormData(prev => ({ ...prev, neighborhood: data }));
+        console.log('BEFORE UPDATE - formData:', formData); // ADD THIS
+        console.log('UPDATE VALUES:', { 
+          location: { lat, lng }, 
+          neighborhood: data, 
+          flagged: false 
+        }); // ADD THIS
+        
+        setFormData(prev => {
+          console.log('PREV STATE:', prev); // ADD THIS
+          const newState = { 
+            ...prev, 
+            location: { lat: lat, lng: lng }, 
+            neighborhood: data,
+            flagged: false
+          };
+          console.log('NEW STATE:', newState); // ADD THIS
+          return newState;
+        });
+        
         console.log(`Found neighborhood: ${data}`);
       } else {
-        alert('Address is not in a recognized San Francisco neighborhood. Please enter manually.');
+        alert('Could not determine neighborhood. Please check that you are entering just one address and check that it is in San Francisco.');
       }
     } catch (error) {
       console.error('Geocoding error:', error);
-      alert('Geocoding failed. Please enter neighborhood manually.');
+      alert('Could not determine neighborhood. Please check that you are entering just one address and check that it is in San Francisco.');
     } finally {
       setGeocoding(false);
     }
   };
+  
 
   const validateForm = () => {
     const newErrors = {};
@@ -255,6 +283,7 @@ export default function Editor({ listing }) {
           street_address: formData.street_address
         },
         neighborhood: formData.neighborhood,
+        flagged: formData.flagged,  // Add this line
         asking_price: formData.asking_price ? Number(formData.asking_price) : null,
         total_units: formData.total_units ? Number(formData.total_units) : null,
         residential_units: formData.residential_units ? Number(formData.residential_units) : null,
@@ -262,6 +291,13 @@ export default function Editor({ listing }) {
         commercial_units: formData.commercial_units ? Number(formData.commercial_units) : null,
         vacant_commercial: formData.vacant_commercial ? Number(formData.vacant_commercial) : null
       };
+
+      if (formData.location && formData.location.lat && formData.location.lng) {
+        listingData.location = {
+          type: 'Point',
+          coordinates: [formData.location.lng, formData.location.lat]
+        };
+      }  
   
       const detailsToEncrypt = {
         sender_phone_number: formData.sender_phone_number || null,
@@ -297,6 +333,11 @@ export default function Editor({ listing }) {
         listingData,
         detailsToEncrypt
       });
+
+      console.log('formData.location:', formData.location);
+      console.log('formData.flagged:', formData.flagged);
+      console.log('listingData.location:', listingData.location);
+      console.log('listingData.flagged:', listingData.flagged);
   
       const { error } = await supabase.rpc('update_listing_with_encryption', {
         listing_id_param: listing.id,
@@ -310,6 +351,7 @@ export default function Editor({ listing }) {
         alert('Failed to save changes: ' + error.message);
       } else {
         console.log('Save successful!');
+        console.log('listing id:', listing.id);
         setSaveSuccess(true);
         setOriginalData(formData);
         
