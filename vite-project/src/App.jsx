@@ -17,6 +17,7 @@ function App() {
   const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
   const [filter, setFilter] = useState({
+    searchQuery: '',
     neighborhoods: [],
     units: null,
     daysLeft: 1,
@@ -65,11 +66,19 @@ function App() {
       setInitialLoading(false)
       return
     }
-
+  
     async function fetchAllProperties() {
-      
-      const { data, error } = await supabase.from('copa_listings_new').select('*')
-
+      const { data, error } = await supabase
+        .from('copa_listings_new')
+        .select(`
+          *,
+          email:emails!listing_id (
+            subject,
+            from_address
+          )
+        `)
+        .order('time_sent_tz', { ascending: false });
+  
       if (error) {
         console.error('Error fetching properties:', error)
       } else {
@@ -77,6 +86,7 @@ function App() {
       }
       setInitialLoading(false)
     }
+    
     fetchAllProperties()
   }, [session])
 
@@ -152,26 +162,48 @@ function App() {
 
 
   const filteredProperties = propertyData.filter(listing => {
-
+    // Search functionality - checks across multiple fields
+    if (filter.searchQuery && filter.searchQuery.trim() !== '') {
+      const query = filter.searchQuery.toLowerCase().trim();
+      
+      // Search in address.full_address (jsonb field)
+      const addressMatch = listing.address?.full_address?.toLowerCase().includes(query);
+      
+      // Search across ALL emails for this listing
+      const emails = Array.isArray(listing.email) ? listing.email : (listing.email ? [listing.email] : []);
+      
+      const subjectMatch = emails.some(email => 
+        email.subject?.toLowerCase().includes(query)
+      );
+      
+      const fromAddressMatch = emails.some(email => 
+        email.from_address?.toLowerCase().includes(query)
+      );
+      
+      // If none of the fields match, filter out this listing
+      if (!addressMatch && !subjectMatch && !fromAddressMatch) return false;
+    }
+    
+    // Existing neighborhood filter
     if (filter.neighborhoods.length > 0) {
       console.log('Checking listing:', listing.id, 'neighborhood:', listing.neighborhood, 'against selected:', filter.neighborhoods);
       if (!filter.neighborhoods.includes(listing.neighborhood)) return false;
     }
-
-
-    if (filter.units === 1 && (listing.total_units < 1 || listing.total_units > 10)) return false
-    if (filter.units === 2 && (listing.total_units < 11 || listing.total_units > 25)) return false
-    if (filter.units === 3 && (listing.total_units < 26 || listing.total_units > 49)) return false
-    if (filter.units === 4 && listing.total_units < 50) return false
-
+    
+    // Existing units filters
+    if (filter.units === 1 && (listing.total_units < 1 || listing.total_units > 10)) return false;
+    if (filter.units === 2 && (listing.total_units < 11 || listing.total_units > 25)) return false;
+    if (filter.units === 3 && (listing.total_units < 26 || listing.total_units > 49)) return false;
+    if (filter.units === 4 && listing.total_units < 50) return false;
+    
+    // Existing active/days left filter
     if (filter.showActive) {
       const daysLeft = calculateDaysRemaining(listing.time_sent_tz);
-      if (daysLeft < filter.daysLeft) return false;  
+      if (daysLeft < filter.daysLeft) return false;
     }
-
+    
     return true;
   });
-
   // Open the modal and log access to the listing, which contains decrypted data
   const openModal = async (listing) => {
     setModalIsOpen(true);

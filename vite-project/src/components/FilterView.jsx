@@ -9,6 +9,8 @@ export default function FilterView({ filter, setFilter }) {
       <input
         type="text"
         placeholder="Search properties..."
+        value={filter.searchQuery}
+        onChange={(e) => setFilter({...filter, searchQuery: e.target.value})}
         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
       />
     </div>
