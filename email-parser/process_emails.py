@@ -497,11 +497,53 @@ def process_email(email, neighborhoods):
             print(f"  ⚠ Failed to clean up temp file: {e}")
         
     print(f"COPA form data found: {bool(copa_form_data)}")
+    
     if not copa_form_data:
+    # Mark email as processed
         supabase.table('emails')\
             .update({'processed': True, 'processed_at': datetime.now().isoformat()})\
             .eq('id', email_id)\
             .execute()
+    
+        try:
+            listing_data = {
+                'flagged': True,
+                'time_sent_tz': email['received_date'],
+                'address': {
+                    'full_address': email.get('subject'),
+                },
+                'details': {
+                    'source': {
+                        'email_address': email.get('from_address')
+                    }
+                }
+            }
+            
+            # Separate details for encryption
+            details = listing_data.pop('details')
+            
+            # Insert the flagged listing
+            listing_id = supabase.rpc(
+                'insert_listing_with_encryption',
+                {
+                    'listing_data': listing_data,
+                    'details_to_encrypt': details
+                }
+            ).execute().data
+            
+            # Link email to the new flagged listing
+            supabase.table('emails')\
+                .update({'listing_id': listing_id})\
+                .eq('id', email_id)\
+                .execute()
+                
+            print(f"✓ Created flagged listing: {listing_id}")
+            
+        except Exception as e:
+            print(f"✗ Error creating flagged listing: {e}")
+            import traceback
+            traceback.print_exc()
+        
         return True
 
     # Geocode address and find neighborhood (non-blocking)
