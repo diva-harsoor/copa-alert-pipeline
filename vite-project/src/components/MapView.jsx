@@ -3,6 +3,49 @@ import { useNeighborhoods } from '../hooks/useNeighborhoods';
 import { APIProvider, Map, AdvancedMarker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import './MapView.css';
 
+const calculateDaysRemaining = (timeSentTz) => {
+  if (!timeSentTz) return null;
+  
+  const sentDate = new Date(timeSentTz);
+  const expiryDate = new Date(sentDate);
+  expiryDate.setDate(expiryDate.getDate() + 5); // Add 5 days to sent date
+  
+  const now = new Date();
+  const diffTime = expiryDate - now;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return Math.max(0, diffDays); // Return 0 if expired
+};
+
+// Helper function to get days remaining color
+const getDaysCounter = (time_sent_tz) => {
+
+  let days = calculateDaysRemaining(time_sent_tz)
+  let text = 'days left';
+
+  let color = 'text-amber-700 bg-amber-100';
+  if (days <= 3) {
+    color = 'text-orange-600 bg-orange-100';
+  }
+  if (days <= 1) {
+    color = 'text-red-600 bg-red-100';
+    text = 'day left';
+  }
+
+  if (days <= 0) {
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-100`}> 
+        Past COPA 
+      </span>
+    );
+  }
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}> 
+      {days} {text}
+    </span>
+  );
+};
 
 function NeighborhoodOverlay({ neighborhoods, handleNeighborhoodClick, selectedNeighborhoods }) {
   const map = useMap();
@@ -172,16 +215,15 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
             }}
           >
             <div>
-              <h3>{hoveredMarker.address.street_address}</h3>
-              {hoveredMarker.total_units > 0 &&
-                <p>{hoveredMarker.total_units} units</p>
-              }
-              {/*
-              {hoveredMarker.details.financial_data?.average_rent &&
-                <p>{hoveredMarker.details.financial_data?.average_rent}</p>
-              }
-              */}
-            </div>        
+            <div className="mb-2">
+              {getDaysCounter(hoveredMarker.time_sent_tz)}
+            </div>
+            <h3 className="mb-1">{hoveredMarker.address.street_address}</h3>
+            <span className="mb-1">{hoveredMarker.neighborhood || 'Neighborhood not available'}</span>
+            {hoveredMarker.total_units > 0 &&
+              <p>{hoveredMarker.total_units} units</p>
+            }
+                        </div>        
           </InfoWindow>
         )}
 
