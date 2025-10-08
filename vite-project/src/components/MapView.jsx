@@ -105,6 +105,100 @@ function NeighborhoodOverlay({ neighborhoods, handleNeighborhoodClick, selectedN
   return null;
 }
 
+function MapContent({ propertyData, setSelectedListing, openModal, neighborhoods, handleNeighborhoodClick, selectedNeighborhoods, SF_CENTER, DEFAULT_ZOOM }) {
+  const [hoveredMarker, setHoveredMarker] = useState(null);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+  const map = useMap();
+
+  const getLatLng = (location) => {
+    if (!location || !location.coordinates) return null;
+    const [lng, lat] = location.coordinates;
+    return { lat, lng };
+  };
+
+  const getInfoWindowOffset = () => {
+    if (!map) return 0.002;
+    const zoom = map.getZoom();
+    return 0.003 * Math.pow(2, 13 - zoom);
+  };
+
+  const hoveredPosition = hoveredMarker ? getLatLng(hoveredMarker.location) : null;
+  const infoWindowPosition = hoveredPosition ? {
+    lat: hoveredPosition.lat + getInfoWindowOffset(),
+    lng: hoveredPosition.lng
+  } : null;
+
+  return (
+    <>
+      <MapControls sfCenter={SF_CENTER} defaultZoom={DEFAULT_ZOOM} />
+      
+      <NeighborhoodOverlay 
+        neighborhoods={neighborhoods} 
+        handleNeighborhoodClick={handleNeighborhoodClick} 
+        selectedNeighborhoods={selectedNeighborhoods}
+      />
+
+      {propertyData.map(listing => {
+        const position = getLatLng(listing.location);
+        if (!position) return null;
+
+        return (
+          <AdvancedMarker
+            key={listing.id}
+            position={position}
+            onMouseEnter={() => {
+              if (hoverTimeout) clearTimeout(hoverTimeout);
+              setHoveredMarker(listing);
+            }}
+            onMouseLeave={() => {
+              const timeout = setTimeout(() => {
+                setHoveredMarker(null);
+              }, 150);
+              setHoverTimeout(timeout);
+            }}
+            onClick={() => {
+              setSelectedListing(listing);
+              openModal(listing);
+            }}
+          >
+            <div className="marker-icon" />
+          </AdvancedMarker>
+        );
+      })}
+
+      {hoveredMarker && infoWindowPosition && (
+        <InfoWindow
+          position={infoWindowPosition}
+          options={{
+            disableAutoPan: true,
+            headerDisabled: true,
+          }}
+          onMouseEnter={() => {
+            if (hoverTimeout) clearTimeout(hoverTimeout);
+          }}
+          onMouseLeave={() => {
+            const timeout = setTimeout(() => {
+              setHoveredMarker(null);
+            }, 150);
+            setHoverTimeout(timeout);
+          }}
+        >
+          <div>
+            <div className="mb-2">
+              {getDaysCounter(hoveredMarker.time_sent_tz)}
+            </div>
+            <h3 className="mb-1">{hoveredMarker.address.street_address}</h3>
+            <span className="mb-1">{hoveredMarker.neighborhood || 'Neighborhood not available'}</span>
+            {hoveredMarker.total_units > 0 &&
+              <p>{hoveredMarker.total_units} units</p>
+            }
+          </div>        
+        </InfoWindow>
+      )}
+    </>
+  );
+}
+
 function MapControls({ sfCenter, defaultZoom }) {
   const map = useMap();
 
@@ -161,24 +255,12 @@ function MapControls({ sfCenter, defaultZoom }) {
 }
 
 
-function MapView( {propertyData, setSelectedListing, filter, setFilter, openModal} ) {
-  const [hoveredMarker, setHoveredMarker] = useState(null);
-  const [hoverTimeout, setHoverTimeout] = useState(null);
+function MapView({ propertyData, setSelectedListing, filter, setFilter, openModal }) {
   const { neighborhoods, loading, error } = useNeighborhoods();
-
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   const SF_CENTER = { lat: 37.75, lng: -122.44 };
   const DEFAULT_ZOOM = 12.5;
-
-  // Helper function to extract lat/lng from GeoJSON
-  const getLatLng = (location) => {
-    if (!location || !location.coordinates) return null;
-    
-    // GeoJSON format is [longitude, latitude]
-    const [lng, lat] = location.coordinates;
-    return { lat, lng };
-  };
 
   const handleNeighborhoodClick = (neighborhood) => {
     const updated = filter.neighborhoods.includes(neighborhood)
@@ -186,10 +268,7 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
       : [...filter.neighborhoods, neighborhood];
     setFilter({...filter, neighborhoods: updated});
     console.log('Updated neighborhoods:', updated);
-  }  
-
-  // Get position for hovered marker info window
-  const hoveredPosition = hoveredMarker ? getLatLng(hoveredMarker.location) : null;
+  };
 
   return (
     <APIProvider apiKey={googleMapsApiKey}>
@@ -200,87 +279,27 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
         gestureHandling="greedy"
         restriction={{
           latLngBounds: {
-            north: 37.85,  // Just north of SF
-            south: 37.65,  // Just south of SF
-            east: -122.30,  // East Bay side
-            west: -122.55   // Pacific Ocean side
+            north: 37.85,
+            south: 37.65,
+            east: -122.30,
+            west: -122.55
           },
           strictBounds: false 
         }}
         minZoom={11}
         maxZoom={19}
       >
-
-      <MapControls sfCenter={SF_CENTER} defaultZoom={DEFAULT_ZOOM} />
-
-        <NeighborhoodOverlay 
-          neighborhoods={neighborhoods} 
-          handleNeighborhoodClick={handleNeighborhoodClick} 
+        <MapContent 
+          propertyData={propertyData}
+          setSelectedListing={setSelectedListing}
+          openModal={openModal}
+          neighborhoods={neighborhoods}
+          handleNeighborhoodClick={handleNeighborhoodClick}
           selectedNeighborhoods={filter.neighborhoods || []}
+          SF_CENTER={SF_CENTER}
+          DEFAULT_ZOOM={DEFAULT_ZOOM}
         />
-
-        {propertyData.map(listing => {
-          const position = getLatLng(listing.location);
-          
-          // Skip if no valid coordinates
-          if (!position) return null;
-
-          return (
-            <AdvancedMarker
-              key={listing.id}
-              position={position}
-              onMouseEnter={() => {
-                if (hoverTimeout) clearTimeout(hoverTimeout);
-                setHoveredMarker(listing);
-              }}
-              onMouseLeave={() => {
-                const timeout = setTimeout(() => {
-                  setHoveredMarker(null);
-                }, 150);
-                setHoverTimeout(timeout);
-              }}
-              onClick={() => {
-                setSelectedListing(listing);
-                openModal(listing);
-              }}
-            >
-              <div className="marker-icon" />
-            </AdvancedMarker>
-          );
-        })}
-
-        {/* Info window */}
-        {hoveredMarker && hoveredPosition && (
-          <InfoWindow
-            position={{ lat: hoveredPosition.lat + 0.005, lng: hoveredPosition.lng }}
-            options={{
-              disableAutoPan: true,
-              headerDisabled: true,
-            }}
-            onMouseEnter={() => {
-              if (hoverTimeout) clearTimeout(hoverTimeout);
-            }}
-            onMouseLeave={() => {
-              const timeout = setTimeout(() => {
-                setHoveredMarker(null);
-              }, 150);
-              setHoverTimeout(timeout);
-            }}
-          >
-            <div>
-            <div className="mb-2">
-              {getDaysCounter(hoveredMarker.time_sent_tz)}
-            </div>
-            <h3 className="mb-1">{hoveredMarker.address.street_address}</h3>
-            <span className="mb-1">{hoveredMarker.neighborhood || 'Neighborhood not available'}</span>
-            {hoveredMarker.total_units > 0 &&
-              <p>{hoveredMarker.total_units} units</p>
-            }
-                        </div>        
-          </InfoWindow>
-        )}
-        </Map>
-
+      </Map>
     </APIProvider>
   );
 }
