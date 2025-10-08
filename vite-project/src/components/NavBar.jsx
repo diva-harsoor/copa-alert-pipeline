@@ -27,7 +27,7 @@ function NavBar( {handleLogout} ) {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
             Logout
           </button>
 

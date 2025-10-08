@@ -22,6 +22,7 @@ function App() {
     units: null,
     daysLeft: 1,
     showActive: false,
+    flagged: false,
   });
   const [selectedListing, setSelectedListing] = useState(null);
   const [decryptedListing, setDecryptedListing] = useState(null);
@@ -201,6 +202,18 @@ function App() {
       const daysLeft = calculateDaysRemaining(listing.time_sent_tz);
       if (daysLeft < filter.daysLeft) return false;
     }
+
+    // Existing flagged filter
+    if (filter.flagged !== undefined) {
+      if (filter.flagged) {
+        // Show only flagged items (flagged === true)
+        if (!listing.flagged) return false;
+      } else {
+        // Show only unflagged items (flagged === false/null/undefined)
+        if (listing.flagged) return false;
+      }
+    }
+    
     
     return true;
   });
