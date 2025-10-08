@@ -27,14 +27,14 @@ function NavBar( {handleLogout} ) {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
+            className="px-3 py-2 text-gray-500 text-sm hover:text-gray-600 transition-colors">
             Logout
           </button>
 
           {/* Feedback Button */}
           <button 
             onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfhrgnZIeigF5WExD9N-zaueEajP-pJJLLPe-y3wFsdY4DjoA/viewform?usp=header', '_blank')}
-            className="px-3 py-2 text-gray-500 text-sm hover:text-gray-600 hover:underline rounded-md transition-colors">
+            className="px-3 py-2 text-gray-500 text-sm hover:text-gray-600 underline transition-colors">
             Give Feedback
           </button>
 
