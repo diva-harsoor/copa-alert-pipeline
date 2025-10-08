@@ -306,6 +306,7 @@ function App() {
             <FilterView 
               filter={filter} 
               setFilter={setFilter} 
+              numFlagged={propertyData.filter(listing => listing.flagged).length}
             />
           </div>
           {/* PropertyCardCollection scrollable */}

@@ -198,7 +198,7 @@ export default function SourceMaterials({ listingId }) {
   return (
     <div className="space-y-6">
       {emails.map((email) => (
-        <div key={email.id} className="border-b border-gray-200 pb-6 last:border-b-0">
+        <div key={email.id} className="border-b border-gray-200 pb-6 last:border-b-0 text-left">
           {/* Email Header */}
           <div className="mb-3">
             <h4 className="font-semibold text-gray-900 mb-1">
