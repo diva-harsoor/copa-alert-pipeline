@@ -109,8 +109,12 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const { neighborhoods, loading, error } = useNeighborhoods();
+  const map = useMap();
 
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  const SF_CENTER = { lat: 37.75, lng: -122.44 };
+  const DEFAULT_ZOOM = 12.5;
 
   // Helper function to extract lat/lng from GeoJSON
   const getLatLng = (location) => {
@@ -129,24 +133,24 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
     console.log('Updated neighborhoods:', updated);
   }  
 
-  function convertGeoJSONToLatLng(coordinates) {
-    // Handle MultiPolygon outer array for multiple polygons
-    if (coordinates[0][0][0] && Array.isArray(coordinates[0][0][0])) {
-      return coordinates[0][0].map(([lng, lat]) => ({ lat, lng}));
-    }
-    // Handle Polygon
-    return coordinates[0].map(([lng, lat]) => ({ lat, lng }));
-  }
-
   const handleZoomIn = () => {
+    if (!map) return;
+    const currentZoom = map.getZoom();
+    map.setZoom(currentZoom + 1);
     console.log('Zoom in clicked');
   };
 
   const handleZoomOut = () => {
+    if (!map) return;
+    const currentZoom = map.getZoom();
+    map.setZoom(currentZoom - 1);
     console.log('Zoom out clicked');
   };
 
   const handleResetView = () => {
+    if (!map) return;
+    map.panTo(SF_CENTER);
+    map.setZoom(DEFAULT_ZOOM);
     console.log('Reset view clicked');
   };
 
@@ -156,9 +160,21 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
   return (
     <APIProvider apiKey={googleMapsApiKey}>
       <Map
-        center={{ lat: 37.75, lng: -122.44 }}
-        zoom={12.5}
+        defaultCenter={SF_CENTER}
+        defaultZoom={DEFAULT_ZOOM}
         mapId="f8ee6d0fa08a34dff1b50156"
+        gestureHandling="greedy"
+        restriction={{
+          latLngBounds: {
+            north: 37.85,  // Just north of SF
+            south: 37.65,  // Just south of SF
+            east: -122.30,  // East Bay side
+            west: -122.55   // Pacific Ocean side
+          },
+          strictBounds: false 
+        }}
+        minZoom={11}
+        maxZoom={19}
       >
         <NeighborhoodOverlay 
           neighborhoods={neighborhoods} 
@@ -226,8 +242,40 @@ function MapView( {propertyData, setSelectedListing, filter, setFilter, openModa
                         </div>        
           </InfoWindow>
         )}
+        </Map>
 
-      </Map>
+        {/* Map Controls */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+          <button
+            onClick={handleZoomIn}
+            className="p-2 hover:bg-gray-100 rounded transition-colors"
+            title="Zoom in"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-2 hover:bg-gray-100 rounded transition-colors"
+            title="Zoom out"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+            </svg>
+          </button>
+          <div className="border-t border-gray-200 my-1" />
+          <button
+            onClick={handleResetView}
+            className="p-2 hover:bg-gray-100 rounded transition-colors"
+            title="Reset view"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+
     </APIProvider>
   );
 }
