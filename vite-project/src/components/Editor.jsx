@@ -343,12 +343,16 @@ export default function Editor({ listing }) {
         listing_id_param: listing.id,
         user_id_param: user.id,
         listing_data: listingData,
-        details_to_encrypt: detailsToEncrypt
+        details_to_encrypt: detailsToEncrypt,
+        last_updated_at: listing.updated_at
       });
   
       if (error) {
         console.error('Error saving listing:', error);
         alert('Failed to save changes: ' + error.message);
+        if (error.message.includes('modified by another user')) {
+          alert('This listing has been modified by another user. Your changes were not saved. Please refresh the page to see the latest version.');
+        }
       } else {
         console.log('Save successful!');
         console.log('listing id:', listing.id);
