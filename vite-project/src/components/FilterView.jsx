@@ -1,6 +1,6 @@
 import './FilterView.css'
 
-export default function FilterView({ filter, setFilter, numFlagged }) {
+export default function FilterView({ filter, setFilter, numFlagged, numNotFlagged }) {
 
   return (
     <div>
@@ -9,7 +9,7 @@ export default function FilterView({ filter, setFilter, numFlagged }) {
       <button 
         onClick={() => setFilter({...filter, flagged: !filter.flagged})}
         className="mb-4 w-full px-3 py-2 bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors">
-        {filter.flagged ? 'View listings with addresses' : 'Review flagged listings'} ({numFlagged})
+        {filter.flagged ? 'View listings with addresses' : `Review flagged listings (${numFlagged})`} 
       </button>
       {/* Search Bar */}
       <div className="mb-4">
