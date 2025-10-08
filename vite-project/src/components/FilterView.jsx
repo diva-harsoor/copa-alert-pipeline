@@ -1,6 +1,6 @@
 import './FilterView.css'
 
-export default function FilterView({ filter, setFilter }) {
+export default function FilterView({ filter, setFilter, numFlagged }) {
 
   return (
     <div>
@@ -9,7 +9,7 @@ export default function FilterView({ filter, setFilter }) {
       <button 
         onClick={() => setFilter({...filter, flagged: !filter.flagged})}
         className="mb-4 w-full px-3 py-2 bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors">
-        {filter.flagged ? 'View listings with addresses' : 'Review flagged listings'}
+        {filter.flagged ? 'View listings with addresses' : 'Review flagged listings'} ({numFlagged})
       </button>
       {/* Search Bar */}
       <div className="mb-4">
@@ -28,11 +28,11 @@ export default function FilterView({ filter, setFilter }) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm font-medium text-gray-700">📍 Neighborhoods:</span>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm text-gray-700">
               {filter.neighborhoods.length > 0 ? (
                 `${filter.neighborhoods.length} selected`
               ) : (
-                <>All <i>(click map to filter)</i></>
+                <i className="text-gray-500 bg-gray-100 px-2 py-1 rounded-md">click map to filter</i>
               )}
             </span>
             <button 

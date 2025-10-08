@@ -97,7 +97,7 @@ export default function PropertyInfoModal({ selectedListing, decryptedListing, d
           {/* Content Area - Two Panes */}
           <div className="flex-1 flex overflow-hidden">
             {/* Left Pane - Source Materials */}
-            <div className="w-2/5 border-r border-gray-200 overflow-y-auto p-6">
+            <div className="w-3/5 border-r border-gray-200 overflow-y-auto p-6">
             {/* 
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Source Materials</h3>
               <p className="text-gray-500 text-sm">Email and document viewer coming soon...</p>
@@ -106,7 +106,7 @@ export default function PropertyInfoModal({ selectedListing, decryptedListing, d
             </div>
   
             {/* Right Pane - Editor */}
-            <div className="w-3/5 overflow-y-auto p-6">
+            <div className="w-2/5 overflow-y-auto p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Property</h3>
 
               {decrypting && (

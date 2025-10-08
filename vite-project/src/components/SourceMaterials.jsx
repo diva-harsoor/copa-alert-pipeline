@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import DOMPurify from 'dompurify';
 
 export default function SourceMaterials({ listingId }) {
   const [emails, setEmails] = useState([]);
@@ -212,9 +213,10 @@ export default function SourceMaterials({ listingId }) {
           </div>
 
           {/* Email Body */}
-          <div className="text-sm text-gray-700 whitespace-pre-wrap mb-4">
-            {email.raw_text || email.raw_html || '(No content)'}
-          </div>
+          <div 
+            className="text-sm text-gray-700 mb-4 text-left"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.raw_html || email.raw_text || '(No content)') }}
+          />
 
           {/* Attachments */}
           {attachments[email.id] && attachments[email.id].length > 0 && (
