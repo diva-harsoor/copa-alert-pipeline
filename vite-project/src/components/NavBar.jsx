@@ -12,21 +12,30 @@ function NavBar( {handleLogout} ) {
   
         {/* Right side - Actions */}
         <div className="flex items-center gap-4">
-          {/* Add Property Button */}
+           {/* Add Property Button 
           <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
             Add Property
           </button>
+          */}
   
-          {/* Profile Button */}
+          {/* Profile Button 
           <button className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors">
             <span className="text-gray-600 font-medium text-sm">👤</span>
           </button>
+          */}
   
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="px-3 py-2 text-gray-600 text-sm hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors">
+            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
             Logout
+          </button>
+
+          {/* Feedback Button */}
+          <button 
+            onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfhrgnZIeigF5WExD9N-zaueEajP-pJJLLPe-y3wFsdY4DjoA/viewform?usp=header', '_blank')}
+            className="px-3 py-2 text-gray-500 text-sm hover:text-gray-600 hover:underline rounded-md transition-colors">
+            Give Feedback
           </button>
 
         </div>
@@ -35,3 +44,5 @@ function NavBar( {handleLogout} ) {
   }
   
   export default NavBar;
+
+  
