@@ -49,7 +49,6 @@ export default function Editor({ listing }) {
   useEffect(() => {
     if (listing) {
       const details = listing.details || {};
-      const financialData = details.financial_data || {};
       
       const initialData = {
         street_address: listing.address?.street_address || '',
@@ -60,34 +59,36 @@ export default function Editor({ listing }) {
         vacant_residential: listing.vacant_residential || '',
         commercial_units: listing.commercial_units || '',
         vacant_commercial: listing.vacant_commercial || '',
+        is_vacant_lot: listing.is_vacant_lot || false,  // ADD THIS
         location: listing.location ? {
           lat: listing.location.coordinates?.[1],
           lng: listing.location.coordinates?.[0]
         } : null,        
-        // Details section
+        // Details section - now flat in details
         sender_phone_number: details.sender_phone_number || '',
         soft_story_required: details.soft_story_required,
+        unit_mix: details.unit_mix || '',  // ADD THIS
         sqft: details.sqft && details.sqft !== -1 ? details.sqft : '',
         parking_spaces: details.parking_spaces && details.parking_spaces !== -1 ? details.parking_spaces : '',
-        // Financial data
-        grm: financialData.grm && financialData.grm !== -1 ? financialData.grm : '',
-        cap_rate: financialData.cap_rate && financialData.cap_rate !== -1 ? financialData.cap_rate : '',
-        monthly_income: financialData.monthly_income && financialData.monthly_income !== -1 ? financialData.monthly_income : '',
-        total_rents: financialData.total_rents && financialData.total_rents !== -1 ? financialData.total_rents : '',
-        other_income: financialData.other_income && financialData.other_income !== -1 ? financialData.other_income : '',
-        total_monthly_income: financialData.total_monthly_income && financialData.total_monthly_income !== -1 ? financialData.total_monthly_income : '',
-        total_annual_income: financialData.total_annual_income && financialData.total_annual_income !== -1 ? financialData.total_annual_income : '',
-        annual_expenses: financialData.annual_expenses && financialData.annual_expenses !== -1 ? financialData.annual_expenses : '',
-        less_total_annual_expenses: financialData.less_total_annual_expenses && financialData.less_total_annual_expenses !== -1 ? financialData.less_total_annual_expenses : '',
-        net_operating_income: financialData.net_operating_income && financialData.net_operating_income !== -1 ? financialData.net_operating_income : '',
-        property_tax_rate: financialData.property_tax_rate && financialData.property_tax_rate !== -1 ? financialData.property_tax_rate : '',
-        property_tax_amount: financialData.property_tax_amount && financialData.property_tax_amount !== -1 ? financialData.property_tax_amount : '',
-        management_rate: financialData.management_rate && financialData.management_rate !== -1 ? financialData.management_rate : '',
-        management_amount: financialData.management_amount && financialData.management_amount !== -1 ? financialData.management_amount : '',
-        insurance: financialData.insurance && financialData.insurance !== -1 ? financialData.insurance : '',
-        utilities: financialData.utilities && financialData.utilities !== -1 ? financialData.utilities : '',
-        maintenance: financialData.maintenance && financialData.maintenance !== -1 ? financialData.maintenance : '',
-        other_expenses: financialData.other_expenses && financialData.other_expenses !== -1 ? financialData.other_expenses : '',
+        // Financial data - now flat in details (not nested)
+        grm: details.grm && details.grm !== -1 ? details.grm : '',
+        cap_rate: details.cap_rate && details.cap_rate !== -1 ? details.cap_rate : '',
+        monthly_income: details.monthly_income && details.monthly_income !== -1 ? details.monthly_income : '',
+        total_rents: details.total_rents && details.total_rents !== -1 ? details.total_rents : '',
+        other_income: details.other_income && details.other_income !== -1 ? details.other_income : '',
+        total_monthly_income: details.total_monthly_income && details.total_monthly_income !== -1 ? details.total_monthly_income : '',
+        total_annual_income: details.total_annual_income && details.total_annual_income !== -1 ? details.total_annual_income : '',
+        annual_expenses: details.annual_expenses && details.annual_expenses !== -1 ? details.annual_expenses : '',
+        less_total_annual_expenses: details.less_total_annual_expenses && details.less_total_annual_expenses !== -1 ? details.less_total_annual_expenses : '',
+        net_operating_income: details.net_operating_income && details.net_operating_income !== -1 ? details.net_operating_income : '',
+        property_tax_rate: details.property_tax_rate && details.property_tax_rate !== -1 ? details.property_tax_rate : '',
+        property_tax_amount: details.property_tax_amount && details.property_tax_amount !== -1 ? details.property_tax_amount : '',
+        management_rate: details.management_rate && details.management_rate !== -1 ? details.management_rate : '',
+        management_amount: details.management_amount && details.management_amount !== -1 ? details.management_amount : '',
+        insurance: details.insurance && details.insurance !== -1 ? details.insurance : '',
+        utilities: details.utilities && details.utilities !== -1 ? details.utilities : '',
+        maintenance: details.maintenance && details.maintenance !== -1 ? details.maintenance : '',
+        other_expenses: details.other_expenses && details.other_expenses !== -1 ? details.other_expenses : '',
         flagged: listing.flagged || false
       };
       setFormData(initialData);
@@ -288,7 +289,8 @@ export default function Editor({ listing }) {
         residential_units: formData.residential_units ? Number(formData.residential_units) : null,
         vacant_residential: formData.vacant_residential ? Number(formData.vacant_residential) : null,
         commercial_units: formData.commercial_units ? Number(formData.commercial_units) : null,
-        vacant_commercial: formData.vacant_commercial ? Number(formData.vacant_commercial) : null
+        vacant_commercial: formData.vacant_commercial ? Number(formData.vacant_commercial) : null,
+        is_vacant_lot: formData.is_vacant_lot || false 
       };
 
       if (formData.location && formData.location.lat && formData.location.lng) {
@@ -301,28 +303,28 @@ export default function Editor({ listing }) {
       const detailsToEncrypt = {
         sender_phone_number: formData.sender_phone_number || null,
         soft_story_required: formData.soft_story_required,
-        sqft: formData.sqft ? Number(formData.sqft) : -1,
-        parking_spaces: formData.parking_spaces ? Number(formData.parking_spaces) : -1,
-        financial_data: {
-          grm: formData.grm ? Number(formData.grm) : -1,
-          cap_rate: formData.cap_rate ? Number(formData.cap_rate) : -1,
-          monthly_income: formData.monthly_income ? Number(formData.monthly_income) : -1,
-          total_rents: formData.total_rents ? Number(formData.total_rents) : -1,
-          other_income: formData.other_income ? Number(formData.other_income) : -1,
-          total_monthly_income: formData.total_monthly_income ? Number(formData.total_monthly_income) : -1,
-          total_annual_income: formData.total_annual_income ? Number(formData.total_annual_income) : -1,
-          annual_expenses: formData.annual_expenses ? Number(formData.annual_expenses) : -1,
-          less_total_annual_expenses: formData.less_total_annual_expenses ? Number(formData.less_total_annual_expenses) : -1,
-          net_operating_income: formData.net_operating_income ? Number(formData.net_operating_income) : -1,
-          property_tax_rate: formData.property_tax_rate ? Number(formData.property_tax_rate) : -1,
-          property_tax_amount: formData.property_tax_amount ? Number(formData.property_tax_amount) : -1,
-          management_rate: formData.management_rate ? Number(formData.management_rate) : -1,
-          management_amount: formData.management_amount ? Number(formData.management_amount) : -1,
-          insurance: formData.insurance ? Number(formData.insurance) : -1,
-          utilities: formData.utilities ? Number(formData.utilities) : -1,
-          maintenance: formData.maintenance ? Number(formData.maintenance) : -1,
-          other_expenses: formData.other_expenses ? Number(formData.other_expenses) : -1
-        },
+        unit_mix: formData.unit_mix || null,
+        sqft: formData.sqft ? Number(formData.sqft) : null,
+        parking_spaces: formData.parking_spaces ? Number(formData.parking_spaces) : null,
+        // Flatten financial data - no more nesting!
+        grm: formData.grm ? Number(formData.grm) : null,
+        cap_rate: formData.cap_rate ? Number(formData.cap_rate) : null,
+        monthly_income: formData.monthly_income ? Number(formData.monthly_income) : null,
+        total_rents: formData.total_rents ? Number(formData.total_rents) : null,
+        other_income: formData.other_income ? Number(formData.other_income) : null,
+        total_monthly_income: formData.total_monthly_income ? Number(formData.total_monthly_income) : null,
+        total_annual_income: formData.total_annual_income ? Number(formData.total_annual_income) : null,
+        annual_expenses: formData.annual_expenses ? Number(formData.annual_expenses) : null,
+        less_total_annual_expenses: formData.less_total_annual_expenses ? Number(formData.less_total_annual_expenses) : null,
+        net_operating_income: formData.net_operating_income ? Number(formData.net_operating_income) : null,
+        property_tax_rate: formData.property_tax_rate ? Number(formData.property_tax_rate) : null,
+        property_tax_amount: formData.property_tax_amount ? Number(formData.property_tax_amount) : null,
+        management_rate: formData.management_rate ? Number(formData.management_rate) : null,
+        management_amount: formData.management_amount ? Number(formData.management_amount) : null,
+        insurance: formData.insurance ? Number(formData.insurance) : null,
+        utilities: formData.utilities ? Number(formData.utilities) : null,
+        maintenance: formData.maintenance ? Number(formData.maintenance) : null,
+        other_expenses: formData.other_expenses ? Number(formData.other_expenses) : null,
         rent_roll: listing.details?.rent_roll || []
       };
   
@@ -333,10 +335,9 @@ export default function Editor({ listing }) {
         detailsToEncrypt
       });
 
-      console.log('formData.location:', formData.location);
-      console.log('formData.flagged:', formData.flagged);
-      console.log('listingData.location:', listingData.location);
-      console.log('listingData.flagged:', listingData.flagged);
+      console.log('listingData being sent:', JSON.stringify(listingData, null, 2));
+      console.log('detailsToEncrypt being sent:', JSON.stringify(detailsToEncrypt, null, 2));
+      
   
       const { error } = await supabase.rpc('update_listing_with_encryption', {
         listing_id_param: listing.id,
@@ -562,7 +563,7 @@ export default function Editor({ listing }) {
   
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Unit Mix</label>
-          <input type="text" name="unit_mix" value={formData.unit_mix} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('unit_mix') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+          <input type="text" name="unit_mix" value={formData.unit_mix} onChange={handleChange} placeholder="e.g., (4) 2BR/1BA, (2) 1BR/1BA" className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('unit_mix') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
         </div>
   
         <div className="flex items-center gap-2">
@@ -576,21 +577,21 @@ export default function Editor({ listing }) {
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Cap Rate</label>
           <input 
             type="text" 
-            name="grm" 
+            name="cap_rate" 
             value={formData.cap_rate} 
             onChange={handleChange} 
             className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('grm') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+              isAutoPopulated('cap_rate') ? 'text-indigo-700 font-medium' : 'text-gray-900'
             }`} 
           />
           <span className="text-xs text-gray-700 whitespace-nowrap">GRM</span>
           <input 
             type="text" 
-            name="cap_rate" 
+            name="grm" 
             value={formData.grm} 
             onChange={handleChange} 
             className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('cap_rate') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+              isAutoPopulated('grm') ? 'text-indigo-700 font-medium' : 'text-gray-900'
             }`} 
           />
         </div>
@@ -607,7 +608,7 @@ export default function Editor({ listing }) {
   
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Vacant Lot</label>
-          <input type="checkbox" name="vacant" checked={formData.vacant || false} onChange={handleCheckboxChange} className="border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3" />
+          <input type="checkbox" name="is_vacant_lot" checked={formData.is_vacant_lot || false} onChange={handleCheckboxChange} className="border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3" />
         </div>
 
           
@@ -689,7 +690,7 @@ export default function Editor({ listing }) {
             value={formData.annual_expenses} 
             onChange={handleChange} 
             className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('annual_expenses') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+              isAutoPopulated('net_operating_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'
             }`} 
           />
           <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>

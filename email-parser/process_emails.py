@@ -275,7 +275,21 @@ def parse_copa3_form_local(pdf_path):
         if not address:
             return {}
         
-        # Return in format matching database schema
+        # Helper function to safely get numeric values
+        def safe_numeric(value, default=None):
+            """Return value if it's not -1, otherwise return default (None)"""
+            if value is None or value == -1:
+                return default
+            return value
+        
+        # Helper function to safely get boolean values
+        def safe_bool(value, default=None):
+            """Return value if it's a boolean, otherwise return default (None)"""
+            if isinstance(value, bool):
+                return value
+            return default
+        
+        # Return in format matching database schema with flattened details
         return {
             'classification': 'listing',
             'confidence': 'high',
@@ -285,20 +299,49 @@ def parse_copa3_form_local(pdf_path):
                 'secondary_address': address.get('secondary_address'),
                 'zip_code': address.get('zip_code')
             },
-            'asking_price': financial_info.get('asking_price', -1),
-            'total_units': property_info.get('total_units', -1),
-            'residential_units': property_info.get('residential_units', -1),
-            'vacant_residential': property_info.get('vacant_residential', -1),
-            'commercial_units': property_info.get('commercial_units', -1),
-            'vacant_commercial': property_info.get('vacant_commercial', -1),
-            'is_vacant_lot': property_info.get('is_vacant_lot', False),
+            'asking_price': safe_numeric(financial_info.get('asking_price')),
+            'total_units': safe_numeric(property_info.get('total_units')),
+            'residential_units': safe_numeric(property_info.get('residential_units')),
+            'vacant_residential': safe_numeric(property_info.get('vacant_residential')),
+            'commercial_units': safe_numeric(property_info.get('commercial_units')),
+            'vacant_commercial': safe_numeric(property_info.get('vacant_commercial')),
+            'is_vacant_lot': safe_bool(property_info.get('is_vacant_lot'), False),
             'details': {
+                # Property details
+                'soft_story_required': safe_bool(property_info.get('soft_story_required')),
+                'sqft': safe_numeric(property_info.get('sqft')),
+                'unit_mix': property_info.get('unit_mix'),  # String field
+                'parking_spaces': safe_numeric(property_info.get('parking_spaces')),
+                
+                # Financial details - income
+                'total_annual_income': safe_numeric(financial_info.get('total_annual_income')),
+                'total_rents': safe_numeric(financial_info.get('total_rents')),
+                'other_income': safe_numeric(financial_info.get('other_income')),
+                'total_monthly_income': safe_numeric(financial_info.get('total_monthly_income')),
+                'average_rent': safe_numeric(financial_info.get('average_rent')),
+                
+                # Financial details - expenses
+                'annual_expenses': safe_numeric(financial_info.get('annual_expenses')),
+                'management_amount': safe_numeric(financial_info.get('management_amount')),
+                'insurance': safe_numeric(financial_info.get('insurance')),
+                'utilities': safe_numeric(financial_info.get('utilities')),
+                'maintenance': safe_numeric(financial_info.get('maintenance')),
+                'other_expenses': safe_numeric(financial_info.get('other_expenses')),
+                
+                # Financial metrics
+                'cap_rate': safe_numeric(financial_info.get('cap_rate')),
+                'grm': safe_numeric(financial_info.get('grm')),
+                
+                # Rent roll (keep as array)
+                'rent_roll': financial_info.get('rent_roll', []),
+                
+                # Seller info
+                'seller_name': seller_info.get('seller_name'),
+                'seller_phone': seller_info.get('seller_phone'),
+                'seller_email': seller_info.get('seller_email'),
+                
+                # Source will be added later in process_email
                 'sender_phone_number': None,
-                'soft_story_required': property_info.get('soft_story_required'),
-                'sqft': -1,
-                'parking_spaces': -1,
-                'financial_data': financial_info,
-                'rent_roll': []
             }
         }
         
@@ -326,8 +369,7 @@ def parse_copa4_form_local(pdf_path):
         if not address:
             return {}
         
-        
-        # Return in format matching database schema
+        # Return in format matching database schema with minimal details
         return {
             'classification': 'listing',
             'confidence': 'high',
@@ -337,14 +379,38 @@ def parse_copa4_form_local(pdf_path):
                 'secondary_address': address.get('secondary_address'),
                 'zip_code': address.get('zip_code')
             },
-            'asking_price': -1,
-            'total_units': -1,
-            'residential_units': -1,
-            'vacant_residential': -1,
-            'commercial_units': -1,
-            'vacant_commercial': -1,
+            'asking_price': None,
+            'total_units': None,
+            'residential_units': None,
+            'vacant_residential': None,
+            'commercial_units': None,
+            'vacant_commercial': None,
             'is_vacant_lot': False,
-            'details': {}
+            'details': {
+                # All fields default to None for COPA4
+                'soft_story_required': None,
+                'sqft': None,
+                'unit_mix': None,
+                'parking_spaces': None,
+                'total_annual_income': None,
+                'total_rents': None,
+                'other_income': None,
+                'total_monthly_income': None,
+                'average_rent': None,
+                'annual_expenses': None,
+                'management_amount': None,
+                'insurance': None,
+                'utilities': None,
+                'maintenance': None,
+                'other_expenses': None,
+                'cap_rate': None,
+                'grm': None,
+                'rent_roll': [],
+                'seller_name': None,
+                'seller_phone': None,
+                'seller_email': None,
+                'sender_phone_number': None,
+            }
         }
         
     except Exception as e:
@@ -352,7 +418,6 @@ def parse_copa4_form_local(pdf_path):
         import traceback
         traceback.print_exc()
         return {}
-
 
 def download_attachment(storage_path):
     """
@@ -574,19 +639,25 @@ def process_email(email, neighborhoods):
             # Continue processing - don't let this block the listing creation
     
     details = copa_form_data.get('details', {})
+    # Add sender email to details
     details['sender_email'] = email.get('from_address')
+
+    # Helper function to convert -1 to None
+    def safe_value(value):
+        """Return None if value is -1, otherwise return value"""
+        return None if value == -1 else value
 
     # Add metadata from email
     listing_data = {
         'time_sent_tz': email['received_date'],
         'address': copa_form_data.get('address'),
         'neighborhood': neighborhood,
-        'asking_price': copa_form_data.get('asking_price') if copa_form_data.get('asking_price') != -1 else None,
-        'total_units': copa_form_data.get('total_units') if copa_form_data.get('total_units') != -1 else None,
-        'residential_units': copa_form_data.get('residential_units') if copa_form_data.get('residential_units') != -1 else None,
-        'vacant_residential': copa_form_data.get('vacant_residential') if copa_form_data.get('vacant_residential') != -1 else None,
-        'commercial_units': copa_form_data.get('commercial_units') if copa_form_data.get('commercial_units') != -1 else None,
-        'vacant_commercial': copa_form_data.get('vacant_commercial') if copa_form_data.get('vacant_commercial') != -1 else None,
+        'asking_price': safe_value(copa_form_data.get('asking_price')),
+        'total_units': safe_value(copa_form_data.get('total_units')),
+        'residential_units': safe_value(copa_form_data.get('residential_units')),
+        'vacant_residential': safe_value(copa_form_data.get('vacant_residential')),
+        'commercial_units': safe_value(copa_form_data.get('commercial_units')),
+        'vacant_commercial': safe_value(copa_form_data.get('vacant_commercial')),
         'is_vacant_lot': copa_form_data.get('is_vacant_lot', False),
         'details': details
     }
