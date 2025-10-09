@@ -44,7 +44,6 @@ export default function Editor({ listing }) {
   const [geocoding, setGeocoding] = useState(false);
   const [neighborhoodOptions, setNeighborhoodOptions] = useState([]);
   const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
-  const [activeTab, setActiveTab] = useState('basic');
 
   // Populate form with listing data on mount
   useEffect(() => {
@@ -420,200 +419,310 @@ export default function Editor({ listing }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 pr-4 overflow-hidden">
       {saveSuccess && (
-        <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded text-sm">
+        <div className="p-1 bg-green-100 text-green-800 text-xs">
           Changes saved successfully!
         </div>
       )}
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('basic')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'basic'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+  
+      {/* All fields in one view */}
+      <div className="space-y-0.5">
+        {/* Street Address */}
+        <div className="flex items-start gap-2">
+          <label className="text-xs text-gray-700 w-40 pt-0.5 flex-shrink-0">
+            Street Address <span className="text-red-500">*</span>
+          </label>
+          <div className="flex-1 flex gap-1">
+            <input
+              type="text"
+              name="street_address"
+              value={formData.street_address}
+              onChange={handleChange}
+              className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b focus:outline-none focus:border-indigo-500 ${
+                isAutoPopulated('street_address') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+              } ${errors.street_address ? 'border-red-500' : 'border-gray-300'}`}
+            />
+            <button
+              type="button"
+              onClick={geocodeAddress}
+              disabled={geocoding || !formData.street_address.trim()}
+              className={`px-1.5 py-0.5 text-xs whitespace-nowrap ${
+                geocoding || !formData.street_address.trim()
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+              }`}
+            >
+              {geocoding ? 'Geocoding...' : 'Find'}
+            </button>
+          </div>
+        </div>
+        {errors.street_address && (
+          <div className="flex">
+            <div className="w-40 flex-shrink-0"></div>
+            <p className="text-xs text-red-600 flex-1">{errors.street_address}</p>
+          </div>
+        )}
+  
+        {/* Neighborhood */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Neighborhood</label>
+          <select
+            name="neighborhood"
+            value={formData.neighborhood}
+            onChange={handleChange}
+            disabled={loadingNeighborhoods}
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('neighborhood') ? 'text-indigo-700 font-medium' : 'text-gray-900'
             }`}
           >
-            Basic Info
-          </button>
-          <button
-            onClick={() => setActiveTab('property')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'property'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Property Details
-          </button>
-          <button
-            onClick={() => setActiveTab('financial')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'financial'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Financial Data
-          </button>
-        </nav>
-      </div>
+            <option value="">Select...</option>
+            {neighborhoodOptions.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
+  
+        {/* Asking Price with Per Unit inline */}
+        <div className="flex-1 flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Asking Price</label>
+          <input 
+            type="text" 
+            name="asking_price" 
+            value={formData.asking_price} 
+            onChange={handleChange} 
+            className={`w-32 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('asking_price') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>
+          <input 
+            type="text" 
+            name="asking_price_per_unit" 
+            value={formData.asking_price_per_unit} 
+            onChange={handleChange} 
+            className={`w-32 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('asking_price_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Total Units</label>
+          <input type="text" name="total_units" value={formData.total_units} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_units') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        {/* Residential Units with Vacant inline */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Residential Units</label>
+          <input 
+            type="text" 
+            name="residential_units" 
+            value={formData.residential_units} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('residential_units') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">vacant:</span>
+          <input 
+            type="text" 
+            name="vacant_residential" 
+            value={formData.vacant_residential} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('vacant_residential') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+        
+        {/* Commercial Units with Vacant inline */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Commercial Units</label>
+          <input 
+            type="text" 
+            name="commercial_units" 
+            value={formData.commercial_units} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('commercial_units') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">vacant:</span>
+          <input 
+            type="text" 
+            name="vacant_commercial" 
+            value={formData.vacant_commercial} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('vacant_commercial') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+  
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Unit Mix</label>
+          <input type="text" name="unit_mix" value={formData.unit_mix} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('unit_mix') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+  
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Average Rent</label>
+          <input type="text" name="average_rent" value={formData.average_rent} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('average_rent') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+          
 
-      {/* Tab Content */}
-      <div className="space-y-4">
-        {activeTab === 'basic' && (
-          <>
-            {/* Street Address */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Street Address <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="street_address"
-                  value={formData.street_address}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    isAutoPopulated('street_address') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-                  } ${errors.street_address ? 'border-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={geocodeAddress}
-                  disabled={geocoding || !formData.street_address.trim()}
-                  className={`px-4 py-2 rounded font-medium whitespace-nowrap ${
-                    geocoding || !formData.street_address.trim()
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                  }`}
-                >
-                  {geocoding ? 'Geocoding...' : 'Find Neighborhood'}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">Click "Find Neighborhood" to auto-fill neighborhood from address</p>
-              {errors.street_address && (
-                <p className="mt-1 text-sm text-red-600">{errors.street_address}</p>
-              )}
-            </div>
+        {/* GRM and Cap Rate on one line */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Cap Rate</label>
+          <input 
+            type="text" 
+            name="grm" 
+            value={formData.cap_rate} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('grm') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">GRM</span>
+          <input 
+            type="text" 
+            name="cap_rate" 
+            value={formData.grm} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('cap_rate') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+  
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Square Footage</label>
+          <input type="text" name="sqft" value={formData.sqft} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('sqft') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
 
-            {/* Neighborhood */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Neighborhood</label>
-              <select
-                name="neighborhood"
-                value={formData.neighborhood}
-                onChange={handleChange}
-                disabled={loadingNeighborhoods}
-                className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  isAutoPopulated('neighborhood') ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-300'
-                }`}
-              >
-                <option value="">Select a neighborhood...</option>
-                {neighborhoodOptions.map(name => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">Select manually or click "Find Neighborhood" to auto-fill from address</p>
-            </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Soft Story Required</label>
+          <input type="checkbox" name="soft_story_required" checked={formData.soft_story_required || false} onChange={handleCheckboxChange} className="border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3" />
+        </div>
+  
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Vacant Lot</label>
+          <input type="checkbox" name="vacant" checked={formData.vacant || false} onChange={handleCheckboxChange} className="border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3" />
+        </div>
 
-            {/* Asking Price */}
-            {renderInput('asking_price', 'Asking Price')}
-            
-            {/* Total Units */}
-            {renderInput('total_units', 'Total Units')}
-            
-            {/* Residential Units */}
-            {renderInput('residential_units', 'Residential Units')}
-            
-            {/* Vacant Residential */}
-            {renderInput('vacant_residential', 'Vacant Residential')}
-            
-            {/* Commercial Units */}
-            {renderInput('commercial_units', 'Commercial Units')}
-            
-            {/* Vacant Commercial */}
-            {renderInput('vacant_commercial', 'Vacant Commercial')}
-          </>
-        )}
+          
+        <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-200">
+          <label className="font-bold text-xs text-gray-700 w-40 flex-shrink-0">Total Annual Income</label>
+          <input type="text" name="total_annual_income" value={formData.total_annual_income} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_annual_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
 
-        {activeTab === 'property' && (
-          <>
-            {/* Sender Phone Number */}
-            {renderInput('sender_phone_number', 'Sender Phone Number', false, 'tel')}
-            
-            {/* Soft Story Required */}
-            <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="soft_story_required"
-                  checked={formData.soft_story_required || false}
-                  onChange={handleCheckboxChange}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Soft Story Required</span>
-              </label>
-            </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Total Rents</label>
+          <input type="text" name="total_rents" value={formData.total_rents} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_rents') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Other Income</label>
+          <input type="text" name="other_income" value={formData.other_income} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('other_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Total Monthly</label>
+          <input type="text" name="total_monthly_income" value={formData.total_monthly_income} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_monthly_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+          
+        {/* Annual Expenses with Per Unit inline */}
+        <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-200">
+          <label className="font-bold text-xs text-gray-700 w-40 flex-shrink-0">Total Annual Expenses</label>
+          <input 
+            type="text" 
+            name="annual_expenses" 
+            value={formData.annual_expenses} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('annual_expenses') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>
+          <input 
+            type="text" 
+            name="annual_expenses_per_unit" 
+            value={formData.annual_expenses_per_unit} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('annual_expenses_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+                        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Management</label>
+          <input type="text" name="management_amount" value={formData.management_amount} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('management_amount') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Insurance</label>
+          <input type="text" name="insurance" value={formData.insurance} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('insurance') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Utilities</label>
+          <input type="text" name="utilities" value={formData.utilities} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('utilities') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Maintenance</label>
+          <input type="text" name="maintenance" value={formData.maintenance} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('maintenance') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Other</label>
+          <input type="text" name="other_expenses" value={formData.other_expenses} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('other_expenses') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+        </div>
 
-            {/* Square Footage */}
-            {renderInput('sqft', 'Square Footage')}
-            
-            {/* Parking Spaces */}
-            {renderInput('parking_spaces', 'Parking Spaces')}
-          </>
-        )}
-
-        {activeTab === 'financial' && (
-          <>
-            <h3 className="text-lg font-semibold text-gray-900 pt-2">Income</h3>
-            {renderInput('monthly_income', 'Monthly Income')}
-            {renderInput('total_rents', 'Total Rents')}
-            {renderInput('other_income', 'Other Income')}
-            {renderInput('total_monthly_income', 'Total Monthly Income')}
-            {renderInput('total_annual_income', 'Total Annual Income')}
-
-            <h3 className="text-lg font-semibold text-gray-900 pt-4">Expenses</h3>
-            {renderInput('annual_expenses', 'Annual Expenses')}
-            {renderInput('less_total_annual_expenses', 'Less Total Annual Expenses')}
-            {renderInput('property_tax_amount', 'Property Tax Amount')}
-            {renderInput('management_amount', 'Management Amount')}
-            {renderInput('insurance', 'Insurance')}
-            {renderInput('utilities', 'Utilities')}
-            {renderInput('maintenance', 'Maintenance')}
-            {renderInput('other_expenses', 'Other Expenses')}
-
-            <h3 className="text-lg font-semibold text-gray-900 pt-4">Metrics</h3>
-            {renderInput('grm', 'GRM (Gross Rent Multiplier)')}
-            {renderInput('cap_rate', 'Cap Rate (%)')}
-            {renderInput('net_operating_income', 'Net Operating Income (NOI)')}
-            {renderInput('property_tax_rate', 'Property Tax Rate (%)')}
-            {renderInput('management_rate', 'Management Rate (%)')}
-          </>
-        )}
-      </div>
-
+        {/* Annual Expenses with Per Unit inline */}
+        <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-200">
+          <label className="font-bold text-xs text-gray-700 w-40 flex-shrink-0">Net Operating Income</label>
+          <input 
+            type="text" 
+            name="net_operating_income" 
+            value={formData.annual_expenses} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('annual_expenses') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>
+          <input 
+            type="text" 
+            name="annual_expenses_per_unit" 
+            value={formData.annual_expenses_per_unit} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('annual_expenses_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+        </div>
+        
+                        
+  
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4 border-t">
+      <div className="flex gap-2 pt-1.5 border-t mt-2">
         <button
           onClick={handleSave}
           disabled={saving || !isDirty}
-          className={`flex-1 px-4 py-2 rounded font-medium ${
+          className={`flex-1 px-2 py-0.5 text-xs ${
             saving || !isDirty
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           }`}
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : 'Save'}
         </button>
         <button
           onClick={handleCancel}
           disabled={saving || !isDirty}
-          className={`px-4 py-2 rounded font-medium ${
+          className={`px-2 py-0.5 text-xs ${
             saving || !isDirty
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -622,12 +731,7 @@ export default function Editor({ listing }) {
           Cancel
         </button>
       </div>
-
-      {/* Legend */}
-      <div className="text-xs text-gray-500 pt-2 border-t">
-        <span className="inline-block px-2 py-1 bg-blue-50 border-blue-200 rounded mr-2">Blue background</span>
-        = Auto-populated from email
-      </div>
+    </div>
     </div>
   );
 }

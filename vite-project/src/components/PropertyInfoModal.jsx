@@ -107,7 +107,6 @@ export default function PropertyInfoModal({ selectedListing, decryptedListing, d
   
             {/* Right Pane - Editor */}
             <div className="w-2/5 overflow-y-auto p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Property</h3>
 
               {decrypting && (
                 <div className="p-4 text-center text-gray-500">
