@@ -180,6 +180,28 @@ def normalize_address(address):
     
     return normalized
 
+def should_skip_email(subject):
+    """
+    Check if email should be skipped based on subject line.
+    Returns True if email should be skipped, False otherwise.
+    """
+    if not subject:
+        return False
+    
+    # Convert to string and check for exclusion patterns
+    subject_str = str(subject)
+    
+    # Check for exact matches (case-insensitive)
+    skip_keywords = ["Moderator", "Delivery Status", "Log In"]
+    for keyword in skip_keywords:
+        if keyword.lower() in subject_str.lower():
+            return True
+    
+    # Check for "Re:" prefix (case variations)
+    if subject_str.strip().lower().startswith("re:"):
+        return True
+    
+    return False
 
 # Update the check_duplicate_listing function:
 def check_duplicate_listing(address_obj):
@@ -462,6 +484,21 @@ def process_email(email, neighborhoods):
     geocode location, find neighborhood, insert into copa_listings_new.
     """
     email_id = email['id']
+    email_subject = email.get('subject', 'No subject')
+
+
+    # Check if email should be skipped based on subject
+    if should_skip_email(email_subject):
+        print(f"\n⊘ Skipping email - excluded subject pattern")
+        print(f"  Subject: {email_subject}")
+        
+        # Mark as processed so it doesn't get picked up again
+        supabase.table('emails')\
+            .update({'processed': True, 'processed_at': datetime.now().isoformat()})\
+            .eq('id', email_id)\
+            .execute()
+        
+        return True
 
     # Check if already processed with a listing
     if email.get('listing_id'):
@@ -471,7 +508,7 @@ def process_email(email, neighborhoods):
 
     print(f"\n{'='*60}")
     print(f"Processing email ID: {email_id}")
-    print(f"Subject: {email.get('subject', 'No subject')}")
+    print(f"Subject: {email_subject}")
     print(f"From: {email.get('from_address')}")
     print(f"Date: {email.get('received_date')}")
     print(f"{'='*60}")
