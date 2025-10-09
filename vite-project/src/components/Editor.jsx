@@ -36,6 +36,10 @@ export default function Editor({ listing }) {
     utilities: '',
     maintenance: '',
     other_expenses: '',
+    asking_price_per_unit: '',  
+    total_annual_income_per_unit: '',  
+    annual_expenses_per_unit: '',  
+    net_operating_income_per_unit: '',  
   });
   
   const [originalData, setOriginalData] = useState({});
@@ -92,6 +96,36 @@ export default function Editor({ listing }) {
         other_expenses: details.other_expenses && details.other_expenses !== -1 ? details.other_expenses : '',
         flagged: listing.flagged || false
       };
+
+      const cleanNumber = (val) => {
+        if (!val || val === -1) return 0;
+        return Number(String(val).replace(/,/g, ''));
+      };
+
+      const totalUnits = cleanNumber(initialData.total_units);
+    
+      if (totalUnits > 0) {
+        const askingPrice = cleanNumber(initialData.asking_price);
+        if (askingPrice > 0) {
+          initialData.asking_price_per_unit = Math.round(askingPrice / totalUnits).toString();
+        }
+        
+        const totalAnnualIncome = cleanNumber(initialData.total_annual_income);
+        if (totalAnnualIncome > 0) {
+          initialData.total_annual_income_per_unit = Math.round(totalAnnualIncome / totalUnits).toString();
+        }
+        
+        const annualExpenses = cleanNumber(initialData.annual_expenses);
+        if (annualExpenses > 0) {
+          initialData.annual_expenses_per_unit = Math.round(annualExpenses / totalUnits).toString();
+        }
+        
+        const noi = cleanNumber(initialData.net_operating_income);
+        if (noi > 0) {
+          initialData.net_operating_income_per_unit = Math.round(noi / totalUnits).toString();
+        }
+      }  
+
       setFormData(initialData);
       setOriginalData(initialData);
     }
@@ -127,7 +161,53 @@ export default function Editor({ listing }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      
+      // Auto-calculate per unit values when relevant fields change
+      const cleanNumber = (val) => {
+        if (!val) return 0;
+        return Number(String(val).replace(/,/g, ''));
+      };
+      
+      const totalUnits = cleanNumber(name === 'total_units' ? value : prev.total_units);
+      
+      if (totalUnits > 0) {
+        // Calculate asking price per unit
+        if (name === 'asking_price' || name === 'total_units') {
+          const askingPrice = cleanNumber(name === 'asking_price' ? value : prev.asking_price);
+          if (askingPrice > 0) {
+            updated.asking_price_per_unit = Math.round(askingPrice / totalUnits).toString();
+          }
+        }
+        
+        // Calculate total annual income per unit
+        if (name === 'total_annual_income' || name === 'total_units') {
+          const totalAnnualIncome = cleanNumber(name === 'total_annual_income' ? value : prev.total_annual_income);
+          if (totalAnnualIncome > 0) {
+            updated.total_annual_income_per_unit = Math.round(totalAnnualIncome / totalUnits).toString();
+          }
+        }
+        
+        // Calculate annual expenses per unit
+        if (name === 'annual_expenses' || name === 'total_units') {
+          const annualExpenses = cleanNumber(name === 'annual_expenses' ? value : prev.annual_expenses);
+          if (annualExpenses > 0) {
+            updated.annual_expenses_per_unit = Math.round(annualExpenses / totalUnits).toString();
+          }
+        }
+        
+        // Calculate NOI per unit
+        if (name === 'net_operating_income' || name === 'total_units') {
+          const noi = cleanNumber(name === 'net_operating_income' ? value : prev.net_operating_income);
+          if (noi > 0) {
+            updated.net_operating_income_per_unit = Math.round(noi / totalUnits).toString();
+          }
+        }
+      }
+      
+      return updated;
+    });
     
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -522,12 +602,11 @@ export default function Editor({ listing }) {
             name="asking_price_per_unit" 
             value={formData.asking_price_per_unit} 
             onChange={handleChange} 
-            className={`w-32 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('asking_price_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
-            }`} 
+            className="w-32 px-1 py-0.5 text-xs bg-gray-100 border-0 border-b border-gray-300 text-gray-500"
+            readOnly 
           />
         </div>
-        
+
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Total Units</label>
           <input type="text" name="total_units" value={formData.total_units} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_units') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
@@ -584,13 +663,7 @@ export default function Editor({ listing }) {
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Unit Mix</label>
           <input type="text" name="unit_mix" value={formData.unit_mix} onChange={handleChange} placeholder="e.g., (4) 2BR/1BA, (2) 1BR/1BA" className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('unit_mix') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
-        </div>
-  
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-700 w-40 flex-shrink-0">Average Rent</label>
-          <input type="text" name="average_rent" value={formData.average_rent} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('average_rent') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
-        </div>
-          
+        </div>          
 
         {/* GRM and Cap Rate on one line */}
         <div className="flex items-center gap-2">
@@ -634,9 +707,26 @@ export default function Editor({ listing }) {
           
         <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-200">
           <label className="font-bold text-xs text-gray-700 w-40 flex-shrink-0">Total Annual Income</label>
-          <input type="text" name="total_annual_income" value={formData.total_annual_income} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_annual_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
+          <input 
+            type="text" 
+            name="total_annual_income" 
+            value={formData.total_annual_income} 
+            onChange={handleChange} 
+            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
+              isAutoPopulated('total_annual_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'
+            }`} 
+          />
+          <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>
+          <input 
+            type="text" 
+            name="total_annual_income_per_unit" 
+            value={formData.total_annual_income_per_unit} 
+            onChange={handleChange} 
+            className="flex-1 px-1 py-0.5 text-xs bg-gray-100 border-0 border-b border-gray-300 text-gray-500"
+            readOnly 
+          />
         </div>
-
+        
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Total Rents</label>
           <input type="text" name="total_rents" value={formData.total_rents} onChange={handleChange} className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${isAutoPopulated('total_rents') ? 'text-indigo-700 font-medium' : 'text-gray-900'}`} />
@@ -670,11 +760,10 @@ export default function Editor({ listing }) {
             name="annual_expenses_per_unit" 
             value={formData.annual_expenses_per_unit} 
             onChange={handleChange} 
-            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('annual_expenses_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
-            }`} 
-          />
-        </div>
+            className="flex-1 px-1 py-0.5 text-xs bg-gray-100 border-0 border-b border-gray-300 text-gray-500"
+            readOnly 
+          />        
+          </div>
                         
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-700 w-40 flex-shrink-0">Management</label>
@@ -707,7 +796,7 @@ export default function Editor({ listing }) {
           <input 
             type="text" 
             name="net_operating_income" 
-            value={formData.annual_expenses} 
+            value={formData.net_operating_income} 
             onChange={handleChange} 
             className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
               isAutoPopulated('net_operating_income') ? 'text-indigo-700 font-medium' : 'text-gray-900'
@@ -716,15 +805,13 @@ export default function Editor({ listing }) {
           <span className="text-xs text-gray-700 whitespace-nowrap">per unit:</span>
           <input 
             type="text" 
-            name="annual_expenses_per_unit" 
-            value={formData.annual_expenses_per_unit} 
+            name="net_operating_income_per_unit" 
+            value={formData.net_operating_income_per_unit} 
             onChange={handleChange} 
-            className={`flex-1 px-1 py-0.5 text-xs bg-blue-50 border-0 border-b border-gray-300 focus:outline-none focus:border-indigo-500 ${
-              isAutoPopulated('annual_expenses_per_unit') ? 'text-indigo-700 font-medium' : 'text-gray-900'
-            }`} 
+            className="flex-1 px-1 py-0.5 text-xs bg-gray-100 border-0 border-b border-gray-300 text-gray-500"
+            readOnly 
           />
-        </div>
-        
+        </div>        
                         
   
       {/* Action Buttons */}
