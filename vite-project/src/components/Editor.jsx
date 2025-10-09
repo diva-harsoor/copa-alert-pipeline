@@ -11,6 +11,7 @@ export default function Editor({ listing }) {
     vacant_residential: '',
     commercial_units: '',
     vacant_commercial: '',
+    unit_mix: '',
     // Details section
     sender_phone_number: '',
     soft_story_required: null,
@@ -223,11 +224,11 @@ export default function Editor({ listing }) {
 
   const validateForm = () => {
     const newErrors = {};
-
+  
     if (!formData.street_address.trim()) {
       newErrors.street_address = 'Address is required';
     }
-
+  
     const numericFields = [
       'asking_price', 'total_units', 'residential_units', 'vacant_residential', 
       'commercial_units', 'vacant_commercial', 'sqft', 'parking_spaces',
@@ -237,37 +238,49 @@ export default function Editor({ listing }) {
       'property_tax_amount', 'management_rate', 'management_amount', 'insurance',
       'utilities', 'maintenance', 'other_expenses'
     ];
-
+  
     numericFields.forEach(field => {
-      if (formData[field] && isNaN(Number(formData[field]))) {
-        newErrors[field] = 'Must be a number';
-      }
-      if (formData[field] && Number(formData[field]) < 0) {
-        newErrors[field] = 'Must be positive';
+      if (formData[field]) {
+        // Remove commas before checking
+        const cleanValue = String(formData[field]).replace(/,/g, '');
+        
+        if (isNaN(Number(cleanValue))) {
+          newErrors[field] = 'Must be a number';
+        }
+        if (Number(cleanValue) < 0) {
+          newErrors[field] = 'Must be positive';
+        }
       }
     });
-
+  
     if (formData.total_units && formData.residential_units && formData.commercial_units) {
-      const total = Number(formData.total_units);
-      const residential = Number(formData.residential_units);
-      const commercial = Number(formData.commercial_units);
+      const total = Number(String(formData.total_units).replace(/,/g, ''));
+      const residential = Number(String(formData.residential_units).replace(/,/g, ''));
+      const commercial = Number(String(formData.commercial_units).replace(/,/g, ''));
       
       if (residential + commercial > total) {
         newErrors.total_units = 'Total units must be ≥ residential + commercial';
       }
     }
-
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
+    
     if (!validateForm()) {
+      console.log('🔴 Validation failed, stopping');
       return;
     }
-  
+    
     setSaving(true);
     setSaveSuccess(false);
+
+    const cleanNumber = (value) => {
+      if (!value) return null;
+      return Number(String(value).replace(/,/g, ''));
+    };  
   
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -283,15 +296,18 @@ export default function Editor({ listing }) {
           street_address: formData.street_address
         },
         neighborhood: formData.neighborhood,
-        flagged: formData.flagged,  // Add this line
-        asking_price: formData.asking_price ? Number(formData.asking_price) : null,
-        total_units: formData.total_units ? Number(formData.total_units) : null,
-        residential_units: formData.residential_units ? Number(formData.residential_units) : null,
-        vacant_residential: formData.vacant_residential ? Number(formData.vacant_residential) : null,
-        commercial_units: formData.commercial_units ? Number(formData.commercial_units) : null,
-        vacant_commercial: formData.vacant_commercial ? Number(formData.vacant_commercial) : null,
-        is_vacant_lot: formData.is_vacant_lot || false 
+        flagged: formData.flagged,
+        asking_price: formData.asking_price ? cleanNumber(formData.asking_price) : null,
+        total_units: formData.total_units ? cleanNumber(formData.total_units) : null,
+        residential_units: formData.residential_units ? cleanNumber(formData.residential_units) : null,
+        vacant_residential: formData.vacant_residential ? cleanNumber(formData.vacant_residential) : null,
+        commercial_units: formData.commercial_units ? cleanNumber(formData.commercial_units) : null,
+        vacant_commercial: formData.vacant_commercial ? cleanNumber(formData.vacant_commercial) : null,
+        is_vacant_lot: formData.is_vacant_lot || false,
+        unit_mix: formData.unit_mix || null
       };
+  
+    
 
       if (formData.location && formData.location.lat && formData.location.lng) {
         listingData.location = {
@@ -303,28 +319,27 @@ export default function Editor({ listing }) {
       const detailsToEncrypt = {
         sender_phone_number: formData.sender_phone_number || null,
         soft_story_required: formData.soft_story_required,
-        unit_mix: formData.unit_mix || null,
-        sqft: formData.sqft ? Number(formData.sqft) : null,
-        parking_spaces: formData.parking_spaces ? Number(formData.parking_spaces) : null,
+        sqft: formData.sqft ? cleanNumber(formData.sqft) : null,
+        parking_spaces: formData.parking_spaces ? cleanNumber(formData.parking_spaces) : null,
         // Flatten financial data - no more nesting!
-        grm: formData.grm ? Number(formData.grm) : null,
-        cap_rate: formData.cap_rate ? Number(formData.cap_rate) : null,
-        monthly_income: formData.monthly_income ? Number(formData.monthly_income) : null,
-        total_rents: formData.total_rents ? Number(formData.total_rents) : null,
-        other_income: formData.other_income ? Number(formData.other_income) : null,
-        total_monthly_income: formData.total_monthly_income ? Number(formData.total_monthly_income) : null,
-        total_annual_income: formData.total_annual_income ? Number(formData.total_annual_income) : null,
-        annual_expenses: formData.annual_expenses ? Number(formData.annual_expenses) : null,
-        less_total_annual_expenses: formData.less_total_annual_expenses ? Number(formData.less_total_annual_expenses) : null,
-        net_operating_income: formData.net_operating_income ? Number(formData.net_operating_income) : null,
-        property_tax_rate: formData.property_tax_rate ? Number(formData.property_tax_rate) : null,
-        property_tax_amount: formData.property_tax_amount ? Number(formData.property_tax_amount) : null,
-        management_rate: formData.management_rate ? Number(formData.management_rate) : null,
-        management_amount: formData.management_amount ? Number(formData.management_amount) : null,
-        insurance: formData.insurance ? Number(formData.insurance) : null,
-        utilities: formData.utilities ? Number(formData.utilities) : null,
-        maintenance: formData.maintenance ? Number(formData.maintenance) : null,
-        other_expenses: formData.other_expenses ? Number(formData.other_expenses) : null,
+        grm: formData.grm ? cleanNumber(formData.grm) : null,
+        cap_rate: formData.cap_rate ? cleanNumber(formData.cap_rate) : null,
+        monthly_income: formData.monthly_income ? cleanNumber(formData.monthly_income) : null,
+        total_rents: formData.total_rents ? cleanNumber(formData.total_rents) : null,
+        other_income: formData.other_income ? cleanNumber(formData.other_income) : null,
+        total_monthly_income: formData.total_monthly_income ? cleanNumber(formData.total_monthly_income) : null,
+        total_annual_income: formData.total_annual_income ? cleanNumber(formData.total_annual_income) : null,
+        annual_expenses: formData.annual_expenses ? cleanNumber(formData.annual_expenses) : null,
+        less_total_annual_expenses: formData.less_total_annual_expenses ? cleanNumber(formData.less_total_annual_expenses) : null,
+        net_operating_income: formData.net_operating_income ? cleanNumber(formData.net_operating_income) : null,
+        property_tax_rate: formData.property_tax_rate ? cleanNumber(formData.property_tax_rate) : null,
+        property_tax_amount: formData.property_tax_amount ? cleanNumber(formData.property_tax_amount) : null,
+        management_rate: formData.management_rate ? cleanNumber(formData.management_rate) : null,
+        management_amount: formData.management_amount ? cleanNumber(formData.management_amount) : null,
+        insurance: formData.insurance ? cleanNumber(formData.insurance) : null,
+        utilities: formData.utilities ? cleanNumber(formData.utilities) : null,
+        maintenance: formData.maintenance ? cleanNumber(formData.maintenance) : null,
+        other_expenses: formData.other_expenses ? cleanNumber(formData.other_expenses) : null,
         rent_roll: listing.details?.rent_roll || []
       };
   
@@ -337,15 +352,20 @@ export default function Editor({ listing }) {
 
       console.log('listingData being sent:', JSON.stringify(listingData, null, 2));
       console.log('detailsToEncrypt being sent:', JSON.stringify(detailsToEncrypt, null, 2));
+
+      console.log('FINAL DATA CHECK:', {
+        hasUnitMix: 'unit_mix' in listingData,
+        unitMixValue: listingData.unit_mix,
+        unitMixType: typeof listingData.unit_mix
+      });
       
-  
       const { error } = await supabase.rpc('update_listing_with_encryption', {
         listing_id_param: listing.id,
         user_id_param: user.id,
         listing_data: listingData,
         details_to_encrypt: detailsToEncrypt,
         last_updated_at: listing.updated_at
-      });
+      });      
   
       if (error) {
         console.error('Error saving listing:', error);

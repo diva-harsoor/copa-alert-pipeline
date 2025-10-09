@@ -328,11 +328,11 @@ def parse_copa3_form_local(pdf_path):
             'commercial_units': safe_numeric(property_info.get('commercial_units')),
             'vacant_commercial': safe_numeric(property_info.get('vacant_commercial')),
             'is_vacant_lot': safe_bool(property_info.get('is_vacant_lot'), False),
+            'unit_mix': property_info.get('unit_mix'),
             'details': {
                 # Property details
                 'soft_story_required': safe_bool(property_info.get('soft_story_required')),
                 'sqft': safe_numeric(property_info.get('sqft')),
-                'unit_mix': property_info.get('unit_mix'),  # String field
                 'parking_spaces': safe_numeric(property_info.get('parking_spaces')),
                 
                 # Financial details - income
@@ -408,11 +408,11 @@ def parse_copa4_form_local(pdf_path):
             'commercial_units': None,
             'vacant_commercial': None,
             'is_vacant_lot': False,
+            'unit_mix': None,
             'details': {
                 # All fields default to None for COPA4
                 'soft_story_required': None,
                 'sqft': None,
-                'unit_mix': None,
                 'parking_spaces': None,
                 'total_annual_income': None,
                 'total_rents': None,
@@ -696,6 +696,7 @@ def process_email(email, neighborhoods):
         'commercial_units': safe_value(copa_form_data.get('commercial_units')),
         'vacant_commercial': safe_value(copa_form_data.get('vacant_commercial')),
         'is_vacant_lot': copa_form_data.get('is_vacant_lot', False),
+        'unit_mix': copa_form_data.get('unit_mix'),
         'details': details
     }
 

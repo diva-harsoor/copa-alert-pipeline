@@ -133,6 +133,13 @@ export default function PropertyCard({ listing, expanded, setSelectedListing, op
           </div>
         }
 
+        {listing.unit_mix &&
+          <div>
+            <span className="text-gray-500">Unit Mix:</span>
+            <span className="ml-2 font-medium">{listing.unit_mix || 'Not available'}</span>
+          </div>
+        }
+
       </div>
       <div className="flex justify-end">
         <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200" onClick={() => openModal(listing)}>
