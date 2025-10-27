@@ -16,7 +16,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithOtp({
             email: email,
             options: {
-                shouldCreateUser: true,
+                shouldCreateUser: false,
             }        
         })
     
