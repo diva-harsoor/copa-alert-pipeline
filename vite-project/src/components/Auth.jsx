@@ -13,24 +13,35 @@ export default function Auth() {
         setLoading(true)
         setMessage('')
     
+        // Check if email exists in qnps table FIRST
+        const { data: qnpData, error: qnpError } = await supabase
+            .from('qnps')
+            .select('email')
+            .eq('email', email.toLowerCase().trim())
+            .single()
+    
+        if (qnpError || !qnpData) {
+            setMessage('This email is not associated with a Qualified Nonprofit. Please contact support if you believe this is an error.')
+            setLoading(false)
+            return
+        }
+    
+        // Only send OTP if email is authorized
         const { error } = await supabase.auth.signInWithOtp({
             email: email,
             options: {
-                shouldCreateUser: false,
+                shouldCreateUser: false,  // Don't auto-create users
             }        
         })
     
         if (error) {
             setMessage(error.message)
         } else {
-            console.log('Setting otpSent to true') // Add this
             setOtpSent(true)
-            console.log('otpSent should now be true') // Add this
-            setMessage('Check your email for the 6-digit code! Note: emails must be associated with a Qualified Nonprofit to view COPA listings.')
+            setMessage('Check your email for the 6-digit code!')
         }
         setLoading(false)
     }
-
     const handleVerifyOtp = async (e) => {
         e.preventDefault()
         setLoading(true)
