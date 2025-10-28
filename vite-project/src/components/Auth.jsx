@@ -13,28 +13,37 @@ export default function Auth() {
         setLoading(true)
         setMessage('')
     
+        console.log('Checking email:', email) // Debug log
+    
         // Check if email exists in qnps table FIRST
         const { data: qnpData, error: qnpError } = await supabase
             .from('qnps')
-            .select('email')
-            .eq('email', email.toLowerCase().trim())
+            .select('contact_email')
+            .eq('contact_email', email.toLowerCase().trim())
             .single()
     
+        console.log('QNP Data:', qnpData) // Debug log
+        console.log('QNP Error:', qnpError) // Debug log
+    
         if (qnpError || !qnpData) {
+            console.log('Email not found in qnps, blocking signup') // Debug log
             setMessage('This email is not associated with a Qualified Nonprofit. Please contact support if you believe this is an error.')
             setLoading(false)
             return
         }
     
+        console.log('Email found in qnps, proceeding with OTP') // Debug log
+    
         // Only send OTP if email is authorized
         const { error } = await supabase.auth.signInWithOtp({
             email: email,
             options: {
-                shouldCreateUser: false,  // Don't auto-create users
+                shouldCreateUser: false,
             }        
         })
     
         if (error) {
+            console.log('OTP Error:', error) // Debug log
             setMessage(error.message)
         } else {
             setOtpSent(true)
@@ -42,6 +51,7 @@ export default function Auth() {
         }
         setLoading(false)
     }
+
     const handleVerifyOtp = async (e) => {
         e.preventDefault()
         setLoading(true)
